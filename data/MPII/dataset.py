@@ -7,7 +7,7 @@ import torch
 from pycocotools.coco import COCO
 
 from lib.core.config import cfg
-from Human36M.noise_stats import error_distribution
+from data.Human36M.noise_stats import error_distribution
 from lib.noise_utils import synthesize_pose
 from lib.smpl import SMPL
 from lib.coord_utils import process_bbox, get_bbox, cam2pixel
