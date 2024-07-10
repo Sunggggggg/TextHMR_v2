@@ -5,11 +5,11 @@ import torch
 import json
 from pycocotools.coco import COCO
 
-from lib.core.config import cfg
-from lib.funcs_utils import save_obj
-from lib.smpl import SMPL
-from lib.coord_utils import cam2pixel, rigid_align, compute_error_accel
-from lib._img_utils import split_into_chunks_mesh
+from core.config import cfg
+from funcs_utils import save_obj
+from smpl import SMPL
+from coord_utils import cam2pixel, rigid_align, compute_error_accel
+from _img_utils import split_into_chunks_mesh
 
 class PW3D(torch.utils.data.Dataset):
     def __init__(self, data_split, args):

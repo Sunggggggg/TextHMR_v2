@@ -9,17 +9,17 @@ import scipy.sparse
 import cv2
 from pycocotools.coco import COCO
 
-from lib.core.config import cfg 
-from lib.noise_utils import synthesize_pose
+from core.config import cfg 
+from noise_utils import synthesize_pose
 
-from lib.smpl import SMPL
-from lib.coord_utils import world2cam, cam2pixel, process_bbox, rigid_align, get_bbox
-from lib.aug_utils import affine_transform, j3d_processing, flip_2d_joint
+from smpl import SMPL
+from coord_utils import world2cam, cam2pixel, process_bbox, rigid_align, get_bbox
+from aug_utils import affine_transform, j3d_processing, flip_2d_joint
 
-from lib.funcs_utils import save_obj
+from funcs_utils import save_obj
 import joblib
-from lib._img_utils import split_into_chunks_pose, split_into_chunks_mesh
-from lib.eval_utils import compute_error_accel
+from _img_utils import split_into_chunks_pose, split_into_chunks_mesh
+from eval_utils import compute_error_accel
 
 class Human36M(torch.utils.data.Dataset):
     def __init__(self, mode, args):

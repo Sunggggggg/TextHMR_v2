@@ -6,12 +6,12 @@ import math
 import torch
 from pycocotools.coco import COCO
 
-from lib.core.config import cfg
-from data.Human36M.noise_stats import error_distribution
-from lib.noise_utils import synthesize_pose
-from lib.smpl import SMPL
-from lib.coord_utils import process_bbox, get_bbox, cam2pixel
-from lib.aug_utils import j2d_processing, j3d_processing, flip_2d_joint
+from core.config import cfg
+from Human36M.noise_stats import error_distribution
+from noise_utils import synthesize_pose
+from smpl import SMPL
+from coord_utils import process_bbox, get_bbox, cam2pixel
+from aug_utils import j2d_processing, j3d_processing, flip_2d_joint
 import joblib
 
 

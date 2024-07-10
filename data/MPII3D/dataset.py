@@ -8,15 +8,15 @@ import transforms3d
 from pycocotools.coco import COCO
 import joblib
 
-from data.Human36M.noise_stats import error_distribution
-from lib.core.config import cfg
-from lib.funcs_utils import save_obj
-from lib.smpl import SMPL
-from lib.coord_utils import cam2pixel, process_bbox, get_bbox, compute_error_accel, rigid_align
-from lib._img_utils import split_into_chunks_mesh, split_into_chunks_pose
-from lib.noise_utils import synthesize_pose
-from lib.aug_utils import j2d_processing, affine_transform, transform_joint_to_other_db
-from lib._kp_utils import convert_kps
+from Human36M.noise_stats import error_distribution
+from core.config import cfg
+from noise_utils import synthesize_pose
+from smpl import SMPL
+from coord_utils import cam2pixel, process_bbox, get_bbox, compute_error_accel, rigid_align
+from aug_utils import j2d_processing, affine_transform, transform_joint_to_other_db
+from _img_utils import split_into_chunks_mesh, split_into_chunks_pose
+import joblib
+from _kp_utils import convert_kps
 
 
 class MPII3D(torch.utils.data.Dataset):

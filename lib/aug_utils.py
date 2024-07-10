@@ -3,8 +3,8 @@ import cv2
 import torch
 import random
 
-from lib.coord_utils import get_center_scale
-from lib.core.config import cfg
+from coord_utils import get_center_scale
+from core.config import cfg
 
 
 def transform_joint_to_other_db(src_joint, src_name, dst_name):
