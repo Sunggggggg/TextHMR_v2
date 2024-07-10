@@ -5,7 +5,6 @@ import torch
 from torch.nn import Module
 
 from smplpytorch.smplpytorch.native.webuser.serialization import ready_arguments
-from smplpytorch.smplpytorch.pytorch import rodrigues_layer
 from smplpytorch.smplpytorch.pytorch.tensutils import (th_posemap_axisang, th_with_zeros, th_pack, make_list, subtract_flat_id)
 
 
