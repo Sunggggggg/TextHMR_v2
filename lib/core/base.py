@@ -19,7 +19,7 @@ def get_dataloader(args, dataset_names, is_train):
 
     print(f"==> Preparing {dataset_split} Dataloader...")
     for name in dataset_names:
-        dataset = eval(f'{name}')(dataset_split.lower(), args=args)
+        dataset = eval(f'{name}.dataset')(dataset_split.lower(), args=args)
         print("# of {} {} data: {}".format(dataset_split, name, len(dataset)))
         dataloader = DataLoader(dataset,
                                 batch_size=batch_per_dataset,
