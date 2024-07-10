@@ -1,5 +1,6 @@
 import argparse
 import __init_path
+from tqdm import tqdm
 
 from core.base import get_dataloader
 from core.config import cfg, update_config
@@ -18,4 +19,10 @@ if args.cfg:
 
 dataset_names = ['Human36M', 'MPII3D', 'PW3D']
 is_train = True
-get_dataloader(args, dataset_names, is_train)
+dataset_list, dataloader_list = get_dataloader(args, dataset_names, is_train)
+
+batch_generator = tqdm(dataloader_list)
+for i, (inputs, targets, meta) in enumerate(batch_generator):
+    print()
+
+    break 

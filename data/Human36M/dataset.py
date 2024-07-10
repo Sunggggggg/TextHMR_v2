@@ -436,7 +436,7 @@ class Human36M(torch.utils.data.Dataset):
     ################### Text ###################
     def load_text_db(self):
         import joblib
-        Video_DB_DIR = '/mnt/SKY/V_HMR/data/preprocessed_data/Video_caption/'
+        Video_DB_DIR = '/mnt/SKY/V_HMR/data/distill_bert/'
         if self.data_split == 'train':
             caption_db_file = osp.join(Video_DB_DIR, f'h36m_{self.data_split}_caption.pt')
         elif self.data_split == 'val':
