@@ -6,16 +6,11 @@ from torch.utils.data import DataLoader
 from collections import Counter
 
 #import models
-from data.Human36M.dataset import Human36M
-from data.COCO.dataset import COCO
-from data.PW3D.dataset import PW3D
-from data.MPII3D.dataset import MPII3D
-from data.MPII.dataset import MPII
-
-from lib.core.config import cfg
-from lib.core.loss import get_loss
-from data.multiple_datasets import MultipleDatasets
-from lib.funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
+import Human36M.dataset, COCO.dataset, PW3D.dataset, MPII3D.dataset, MPII.dataset
+from core.config import cfg
+from core.loss import get_loss
+from multiple_datasets import MultipleDatasets
+from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
 
 def get_dataloader(args, dataset_names, is_train):
     dataset_split = 'TRAIN' if is_train else 'TEST'
