@@ -1,16 +1,20 @@
 import numpy as np
 import torch
-import wandb
 from tqdm import tqdm
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from collections import Counter
 
 import models
-import Human36M.dataset, COCO.dataset, PW3D.dataset, MPII3D.dataset, MPII.dataset
+from data.Human36M.dataset import Human36M
+from data.COCO.dataset import COCO
+from data.PW3D.dataset import PW3D
+from data.MPII3D.dataset import MPII3D
+from data.MPII.dataset import MPII
+
 from core.config import cfg
 from core.loss import get_loss
-from multiple_datasets import MultipleDatasets
+from data.multiple_datasets import MultipleDatasets
 from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
 
 def get_dataloader(args, dataset_names, is_train):
@@ -20,7 +24,7 @@ def get_dataloader(args, dataset_names, is_train):
 
     print(f"==> Preparing {dataset_split} Dataloader...")
     for name in dataset_names:
-        dataset = eval(f'{name}.dataset')(dataset_split.lower(), args=args)
+        dataset = eval(f'{name}')(dataset_split.lower(), args=args)
         print("# of {} {} data: {}".format(dataset_split, name, len(dataset)))
         dataloader = DataLoader(dataset,
                                 batch_size=batch_per_dataset,
@@ -109,14 +113,6 @@ class Trainer:
         self.edge_weight = cfg.MODEL.edge_loss_weight
         self.joint_weight = cfg.MODEL.joint_loss_weight
         self.edge_add_epoch = cfg.TRAIN.edge_loss_start
-
-        if cfg.TRAIN.wandb:
-            wandb.init(config=cfg,
-                   project=cfg.MODEL.name,
-                   name='PMCE/' + cfg.output_dir.split('/')[-1],
-                   dir=cfg.output_dir,
-                   job_type="training",
-                   reinit=True)
 
     def train(self, epoch):
         self.model.train()
@@ -236,17 +232,6 @@ class Tester:
             
             print(f'{eval_prefix}MPVPE: {self.surface_error:.2f}, MPJPE: {self.joint_error:.2f}')
 
-            if cfg.TRAIN.wandb:
-                wandb_joint_error = self.joint_error
-                wandb_verts_error = self.surface_error
-                wandb.log(
-                    {
-                        'epoch': epoch,
-                        'error/MPJPE': wandb_joint_error,
-                        'error/MPVPE': wandb_verts_error,
-                    }
-                )
-
             # Final Evaluation
             if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
                 self.val_dataset.evaluate(result)
@@ -263,14 +248,6 @@ class LiftTrainer:
         self.print_freq = cfg.TRAIN.print_freq
 
         self.model = self.model.cuda()
-
-        if cfg.TRAIN.wandb:
-            wandb.init(config=cfg,
-                   project=cfg.MODEL.name,
-                   name='PoseEst/' + cfg.output_dir.split('/')[-1],
-                   dir=cfg.output_dir,
-                   job_type="training",
-                   reinit=True)
 
     def train(self, epoch):
         self.model.train()
@@ -294,13 +271,6 @@ class LiftTrainer:
             self.optimizer.step()
 
             running_loss += float(loss.detach().item())
-            if cfg.TRAIN.wandb:
-                wandb_loss = loss.detach()
-                wandb.log(
-                    {
-                        'train_loss/total_loss': wandb_loss
-                    }
-                )
 
             if i % self.print_freq == 0:
                 batch_generator.set_description(f'Epoch{epoch}_({i}/{len(self.batch_generator)}) => '
@@ -362,15 +332,6 @@ class LiftTester:
 
         self.joint_error = joint_error / len(self.val_loader)
         print(f'{eval_prefix}MPJPE: {self.joint_error:.4f}')
-
-        if cfg.TRAIN.wandb:
-                wandb_error = self.joint_error
-                wandb.log(
-                    {
-                        'epoch': epoch,
-                        'error/MPJPE': wandb_error
-                    }
-                )
 
         # Final Evaluation
         if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
