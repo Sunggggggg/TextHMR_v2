@@ -11,7 +11,7 @@ import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-from core.config import cfg
+from lib.core.config import cfg
 
 
 def lr_check(optimizer, epoch):
