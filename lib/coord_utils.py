@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.nn import functional as F
-from core.config import cfg
+from lib.core.config import cfg
 
 
 def align_kps_bbox(joint_img, bbox):
