@@ -8,7 +8,7 @@ import transforms3d
 from pycocotools.coco import COCO
 import joblib
 
-from Human36M.noise_stats import error_distribution
+from data.Human36M.noise_stats import error_distribution
 from lib.core.config import cfg
 from lib.funcs_utils import save_obj
 from lib.smpl import SMPL
