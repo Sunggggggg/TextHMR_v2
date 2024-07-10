@@ -1,6 +1,6 @@
 import argparse
-from lib.core.base import get_dataloader
-from lib.core.config import cfg, update_config
+from core.base import get_dataloader
+from core.config import cfg, update_config
 
 parser = argparse.ArgumentParser(description='Train Pose2Mesh')
 
