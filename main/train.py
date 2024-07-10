@@ -4,6 +4,7 @@ import torch
 import shutil
 import random
 import numpy as np
+import __init_path
 
 from funcs_utils import save_checkpoint, check_data_pararell, count_parameters
 from core.config import cfg, update_config

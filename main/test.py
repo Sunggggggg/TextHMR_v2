@@ -1,4 +1,6 @@
 import argparse
+import __init_path
+
 from core.base import get_dataloader
 from core.config import cfg, update_config
 
