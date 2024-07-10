@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import os.path as osp
 import json
-from core.config import cfg 
+from lib.core.config import cfg 
 
 
 from smplpytorch.pytorch.smpl_layer import SMPL_Layer
