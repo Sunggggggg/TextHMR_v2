@@ -5,8 +5,8 @@ import shutil
 import random
 import numpy as np
 
-from lib.funcs_utils import save_checkpoint, check_data_pararell, count_parameters
-from lib.core.config import cfg, update_config
+from funcs_utils import save_checkpoint, check_data_pararell, count_parameters
+from core.config import cfg, update_config
 
 parser = argparse.ArgumentParser(description='Train Pose2Mesh')
 
