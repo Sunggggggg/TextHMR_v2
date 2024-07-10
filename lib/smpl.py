@@ -5,7 +5,7 @@ import json
 from lib.core.config import cfg 
 
 
-from smplpytorch.pytorch.smpl_layer import SMPL_Layer
+from smplpytorch.smplpytorch.pytorch.smpl_layer import SMPL_Layer
 
 
 class SMPL(object):
