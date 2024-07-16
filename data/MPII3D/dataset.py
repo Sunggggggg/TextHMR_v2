@@ -6,7 +6,6 @@ import json
 import math
 import transforms3d
 from pycocotools.coco import COCO
-import joblib
 
 from Human36M.noise_stats import error_distribution
 from core.config import cfg
@@ -95,9 +94,6 @@ class MPII3D(torch.utils.data.Dataset):
         else:
             self.vid_indices = split_into_chunks_pose(self.img_paths, self.seqlen, self.stride, is_train=(set=='train'))
         
-        # use text
-        self.caption_db = self.load_text_db()
-
     def get_stat(self):
         ordered_stats = []
         for joint in self.human36_joints_name:
@@ -174,7 +170,6 @@ class MPII3D(torch.utils.data.Dataset):
             vid_idx = int(img['cam_idx'])
             frame_idx = int(img['frame_idx'])
             
-            # data/mpii_3d/S1/Seq1/video_0/006138.jpg
             img_name = osp.join('data/mpii_3d', 'S'+str(sub_idx), 'Seq'+str(seq_idx), 'video_'+str(vid_idx), str(frame_idx).zfill(6)+'.jpg')
             try:
                 img_feat = img_features[img_name]['features']
@@ -209,7 +204,7 @@ class MPII3D(torch.utils.data.Dataset):
             vid_idx = str(vid_idx)
             frame_idx = str(frame_idx)
             
-            # regress h36m, coco joints
+             # regress h36m, coco joints
             joint_cam_coco = np.array(coco_cam_joints[sub_idx][seq_idx][vid_idx][frame_idx], dtype=np.float32)
             gt_joint_img_coco = np.array(gt_coco_img_joints[sub_idx][seq_idx][vid_idx][frame_idx], dtype=np.float32)
             joint_cam_h36m = np.array(h36m_cam_joints[sub_idx][seq_idx][vid_idx][frame_idx], dtype=np.float32)
@@ -392,41 +387,13 @@ class MPII3D(torch.utils.data.Dataset):
             return self.get_single_item(idx)
         else:
             return self.get_single_item_val(idx)
-        
-    ################### Text ###################
-    def load_text_db(self):
-        import joblib
-        Video_DB_DIR = '/mnt/SKY/V_HMR/data/distill_bert/'
-        if self.data_split == 'train':
-            caption_db_file = osp.join(Video_DB_DIR, f'mpii3d_{self.data_split}_caption.pt')
-        elif self.data_split == 'val':
-            caption_db_file = osp.join(Video_DB_DIR, f'mpii3d_{self.data_split}_caption.pt')
-        
-        if osp.isfile(caption_db_file):
-            caption_db = joblib.load(caption_db_file)
-        else:
-            raise ValueError(f'{caption_db_file} do not exists')
-        print(f'Loaded {caption_db_file}')
-
-        return caption_db
     
-    def load_text_embedding(self, img_path):
-        seqname, img = os.path.join(*img_path.split('/')[2:5]), img_path.split('/')[-1]
-        inp_text = self.caption_db[seqname][img]['distill_bert'][0]
-        max_caption_len, caption_len = 36, inp_text.shape[0]
-
-        # padding
-        inp_text = np.concatenate([inp_text] + [np.zeros_like(inp_text[0:1]) for _ in range(max_caption_len-caption_len)], axis=0)
-        return inp_text
-    ###########################################
-
     def normalize_screen_coordinates(self, X, w, h):
         assert X.shape[-1] == 2
         return X / w * 2 - [1, h / w]
     
     def get_single_item(self, idx):
         start_index, end_index = self.vid_indices[idx]
-        img_paths = []
         joint_imgs = []
         img_features = []
         for num in range(self.seqlen):
@@ -458,9 +425,8 @@ class MPII3D(torch.utils.data.Dataset):
             
             joint_imgs.append(joint_img_coco.reshape(1, len(joint_img_coco), 2))
             img_features.append(img_feature.reshape(1, 2048))
-            img_paths.append(img_path)
             
-            if cfg.MODEL.name == 'Ours':
+            if cfg.MODEL.name == 'PMCE':
                 if num == int(self.seqlen / 2):
                     # default valid
                     mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender, cam_param_R, cam_param_t)
@@ -468,8 +434,6 @@ class MPII3D(torch.utils.data.Dataset):
                     mesh_cam = mesh_cam - root_coor
                         
                     mesh_valid = np.ones((len(mesh_cam), 1), dtype=np.float32)
-                    pose_valid = np.ones((len(pose_param), 1), dtype=np.float32)
-                    shape_valid = np.ones((len(shape_param), 1), dtype=np.float32)
                     reg_joint_valid = np.ones((len(joint_cam_h36m), 1), dtype=np.float32)
                     lift_joint_valid = np.ones((len(joint_cam_coco), 1), dtype=np.float32)
                     
@@ -478,10 +442,8 @@ class MPII3D(torch.utils.data.Dataset):
                         if error > self.fitting_thr:
                             mesh_valid[:], reg_joint_valid[:], lift_joint_valid[:] = 0, 0, 0
 
-                    targets = {'mesh': mesh_cam / 1000, 'pose': pose_param, 'shape': shape_param,
-                               'lift_pose3d': joint_cam_coco, 'reg_pose3d': joint_cam_h36m}
-                    meta = {'mesh_valid': mesh_valid, 'pose_valid': pose_valid, 'shape_valid': shape_valid,
-                            'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}   # Full Annotation 
+                    targets = {'mesh': mesh_cam / 1000, 'lift_pose3d': joint_cam_coco, 'reg_pose3d': joint_cam_h36m}
+                    meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
 
             elif cfg.MODEL.name == 'PoseEst' and num == int(self.seqlen / 2):
                 # default valid
@@ -495,9 +457,8 @@ class MPII3D(torch.utils.data.Dataset):
         
         joint_imgs = np.concatenate(joint_imgs)
         img_features = np.concatenate(img_features)
-        if cfg.MODEL.name == 'Ours':
-            inp_text = self.load_text_embedding(img_paths[int(self.seqlen / 2)])
-            inputs = {'pose2d': joint_imgs, 'img_feature': img_features, 'text_feature': inp_text}
+        if cfg.MODEL.name == 'PMCE':
+            inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
             return inputs, targets, meta
         
         elif cfg.MODEL.name == 'PoseEst':

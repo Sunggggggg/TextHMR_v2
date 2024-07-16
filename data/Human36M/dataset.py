@@ -101,8 +101,6 @@ class Human36M(torch.utils.data.Dataset):
         elif cfg.MODEL.name == 'PMCE':
             self.vid_indices = split_into_chunks_mesh(self.img_names, self.seqlen, self.stride, self.poses, is_train=(set=='train'))
 
-        # Text db
-        self.caption_db = self.load_text_db()
 
     def load_pose2d_det(self, data_path, skip_list=[]):
         pose2d_det = []
@@ -433,34 +431,6 @@ class Human36M(torch.utils.data.Dataset):
         joint_coord = np.concatenate((joint_coord, pelvis, neck))
         return joint_coord
 
-    ################### Text ###################
-    def load_text_db(self):
-        import joblib
-        Video_DB_DIR = '/mnt/SKY/V_HMR/data/distill_bert/'
-        if self.data_split == 'train':
-            caption_db_file = osp.join(Video_DB_DIR, f'h36m_{self.data_split}_caption.pt')
-        elif self.data_split == 'val':
-            caption_db_file = osp.join(Video_DB_DIR, f'h36m_{self.data_split}_caption.pt')
-        
-        if osp.isfile(caption_db_file):
-            caption_db = joblib.load(caption_db_file)
-        else:
-            raise ValueError(f'{caption_db_file} do not exists')
-        print(f'Loaded {caption_db_file}')
-
-        return caption_db
-    
-    def load_text_embedding(self, img_path):
-        img_name_len = len('000000.jpg')
-        seqname, img = img_path.split('/')[-2], img_path.split('/')[-1][-img_name_len:]
-        inp_text = self.caption_db[seqname][img]['distill_bert'][0]
-        max_caption_len, caption_len = 36, inp_text.shape[0]
-
-        # padding
-        inp_text = np.concatenate([inp_text] + [np.zeros_like(inp_text[0:1]) for _ in range(max_caption_len-caption_len)], axis=0)
-        return inp_text
-    ############################################
-
     def __len__(self):
         return len(self.vid_indices)
     
@@ -479,7 +449,6 @@ class Human36M(torch.utils.data.Dataset):
 
     def get_single_item(self, idx):
         start_index, end_index = self.vid_indices[idx]
-        img_paths = []
         joint_imgs = []
         img_features = []
         flip, rot = 0, 0
@@ -488,7 +457,6 @@ class Human36M(torch.utils.data.Dataset):
                 single_idx = start_index
             else:
                 single_idx = start_index + num
-            img_path = self.img_paths[single_idx]
             img_id, bbox, img_shape = self.img_ids[single_idx], self.bboxs[single_idx].copy(), self.img_hws[single_idx]
             image_name = self.img_names[single_idx]
             cam_param = {'R': self.cam_param_Rs[single_idx], 't': self.cam_param_ts[single_idx], 'focal': self.cam_param_focals[single_idx], 'princpt': self.cam_param_princpts[single_idx]}
@@ -528,7 +496,6 @@ class Human36M(torch.utils.data.Dataset):
 
             joint_imgs.append(joint_img.reshape(1, len(joint_img), 2))
             img_features.append(img_feature.reshape(1, 2048))
-            img_paths.append(img_path)
             if cfg.MODEL.name == 'PMCE':
                 if num == int(self.seqlen / 2):
                     # default valid
@@ -537,8 +504,6 @@ class Human36M(torch.utils.data.Dataset):
                     mesh_cam = mesh_cam - root_coord
                     # draw_nodes_nodes(joint_cam_h36m, mesh_cam)
                     mesh_valid = np.ones((len(mesh_cam), 1), dtype=np.float32)
-                    pose_valid = np.ones((len(smpl_param['pose']), 1), dtype=np.float32)
-                    shape_valid = np.ones((len(smpl_param['shape']), 1), dtype=np.float32)
                     reg_joint_valid = np.ones((len(joint_cam_h36m), 1), dtype=np.float32)
                     lift_joint_valid = np.ones((len(joint_cam), 1), dtype=np.float32)
                     # if fitted mesh is too far from h36m gt, discard it
@@ -547,11 +512,8 @@ class Human36M(torch.utils.data.Dataset):
                         mesh_valid[:] = 0
                         if self.input_joint_name == 'coco':
                             lift_joint_valid[:] = 0
-                    
-                    targets = {'mesh': mesh_cam / 1000, 'pose': smpl_param['pose'], 'shape': smpl_param['shape'],
-                               'lift_pose3d': joint_cam_coco, 'reg_pose3d': joint_cam_h36m}
-                    meta = {'mesh_valid': mesh_valid, 'pose_valid': pose_valid, 'shape_valid': shape_valid,
-                            'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}   # Full Annotation 
+                    targets = {'mesh': mesh_cam / 1000, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m}
+                    meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
 
             elif cfg.MODEL.name == 'PoseEst' and num == int(self.seqlen / 2):
                 # default valid
@@ -560,9 +522,8 @@ class Human36M(torch.utils.data.Dataset):
         
         joint_imgs = np.concatenate(joint_imgs)
         img_features = np.concatenate(img_features)
-        if cfg.MODEL.name == 'Ours':
-            inp_text = self.load_text_embedding(img_paths[int(self.seqlen / 2)])
-            inputs = {'pose2d': joint_imgs, 'img_feature': img_features, 'text_feature': inp_text}
+        if cfg.MODEL.name == 'PMCE':
+            inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
             return inputs, targets, meta
         
         elif cfg.MODEL.name == 'PoseEst':
