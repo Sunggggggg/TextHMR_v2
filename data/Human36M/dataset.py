@@ -449,8 +449,9 @@ class Human36M(torch.utils.data.Dataset):
 
     def get_single_item(self, idx):
         start_index, end_index = self.vid_indices[idx]
-        joint_imgs = []
-        img_features = []
+        joint_imgs, img_features = [], []
+        poses, shapes, meshes, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], []
+        mesh_valids, reg_joint_valids, lift_joint_valids = [], [], []
         flip, rot = 0, 0
         for num in range(self.seqlen):
             if start_index == end_index:
@@ -496,38 +497,53 @@ class Human36M(torch.utils.data.Dataset):
 
             joint_imgs.append(joint_img.reshape(1, len(joint_img), 2))
             img_features.append(img_feature.reshape(1, 2048))
-            if cfg.MODEL.name == 'PMCE':
-                if num == int(self.seqlen / 2):
-                    # default valid
-                    mesh_cam, joint_h36m_from_mesh = self.get_smpl_coord(smpl_param, cam_param)
-                    # root relative camera coordinate
-                    mesh_cam = mesh_cam - root_coord
-                    # draw_nodes_nodes(joint_cam_h36m, mesh_cam)
-                    mesh_valid = np.ones((len(mesh_cam), 1), dtype=np.float32)
-                    reg_joint_valid = np.ones((len(joint_cam_h36m), 1), dtype=np.float32)
-                    lift_joint_valid = np.ones((len(joint_cam), 1), dtype=np.float32)
-                    # if fitted mesh is too far from h36m gt, discard it
-                    error = self.get_fitting_error(joint_cam_h36m, mesh_cam)
-                    if error > self.fitting_thr:
-                        mesh_valid[:] = 0
-                        if self.input_joint_name == 'coco':
-                            lift_joint_valid[:] = 0
-                    targets = {'mesh': mesh_cam / 1000, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m}
-                    meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
 
-            elif cfg.MODEL.name == 'PoseEst' and num == int(self.seqlen / 2):
-                # default valid
-                posenet_joint_cam = joint_cam
-                joint_valid = np.ones((len(joint_cam), 1), dtype=np.float32)
-        
+            # Target processing
+            poses.append(smpl_param['pose'].reshape(1, len(smpl_param['pose'])))
+            shapes.append(smpl_param['shape'].reshape(1, len(smpl_param['shape'])))
+            
+            mesh_cam, joint_h36m_from_mesh = self.get_smpl_coord(smpl_param, cam_param)
+            mesh_cam = mesh_cam - root_coord
+
+            # draw_nodes_nodes(joint_cam_h36m, mesh_cam)
+            mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
+            reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
+            lift_joint_valid = np.ones((1, len(joint_cam), 1), dtype=np.float32)
+            
+            # if fitted mesh is too far from h36m gt, discard it
+            error = self.get_fitting_error(joint_cam_h36m, mesh_cam)
+            if error > self.fitting_thr:
+                mesh_valid[:] = 0
+                if self.input_joint_name == 'coco':
+                    lift_joint_valid[:] = 0
+
+            meshes.append(mesh_cam / 1000)
+            lift_pose3d_poses.append(joint_cam_coco)
+            reg_pose3d_poses.append(joint_cam_h36m)
+            mesh_valids.append(mesh_valid)
+            reg_joint_valids.append(reg_joint_valid)
+            lift_joint_valids.append(lift_joint_valid)
+
+        # Input
         joint_imgs = np.concatenate(joint_imgs)
         img_features = np.concatenate(img_features)
-        if cfg.MODEL.name == 'PMCE':
-            inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-            return inputs, targets, meta
-        
-        elif cfg.MODEL.name == 'PoseEst':
-            return joint_imgs, posenet_joint_cam, joint_valid, img_features
+
+        # Target
+        meshes = np.concatenate(meshes)
+        poses = np.concatenate(poses)
+        shapes = np.concatenate(shapes)
+        lift_pose3d_poses = np.concatenate(lift_pose3d_poses)
+        reg_pose3d_poses = np.concatenate(reg_pose3d_poses)
+
+        # Meta
+        mesh_valids = np.concatenate(mesh_valids)
+        reg_joint_valids = np.concatenate(reg_joint_valids)
+        lift_joint_valids = np.concatenate(lift_joint_valids)
+
+        inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
+        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids}
+        return inputs, targets, meta
 
     def normalize_screen_coordinates(self, X, w, h):
         assert X.shape[-1] == 2

@@ -28,14 +28,10 @@ np.random.seed(args.seed)
 os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 print("Work on GPU: ", os.environ['CUDA_VISIBLE_DEVICES'])
 
-from lib.core.base import Trainer, Tester, LiftTrainer, LiftTester
+from lib.core.base import Trainer, Tester
 
-if True :
-    trainer = Trainer(args, load_dir='')
-    tester = Tester(args)  # if not args.debug else None
-elif False :
-    trainer = LiftTrainer(args, load_dir='')
-    tester = LiftTester(args)  # if not args.debug else None
+trainer = Trainer(args, load_dir='')
+tester = Tester(args)  # if not args.debug else None
 
 print("===> Start training...")
 # for epoch in range(cfg.TRAIN.begin_epoch, cfg.TRAIN.end_epoch + 1):

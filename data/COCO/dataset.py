@@ -283,30 +283,30 @@ class MSCOCO(torch.utils.data.Dataset):
         joint_img = joint_img.reshape(1, len(joint_img), 2).repeat(self.seqlen, axis=0)
         img_feat = img_feat.reshape(1, 2048).repeat(self.seqlen, axis=0)
 
-        if cfg.MODEL.name == 'PMCE':
-            # default valid
-            mesh_valid = np.ones((len(mesh_cam), 1), dtype=np.float32)
-            reg_joint_valid = np.ones((len(joint_cam_h36m), 1), dtype=np.float32)
-            lift_joint_valid = np.ones((len(joint_cam), 1), dtype=np.float32)
-            error = self.get_fitting_error(tight_bbox, self.joint_imgs[idx], joint_img_coco[:17], self.joint_valids[idx])
-            if error > self.fitting_thr:
-                mesh_valid[:], reg_joint_valid[:], lift_joint_valid[:] = 0, 0, 0
+        mesh_cam = mesh_cam.reshape(1, len(mesh_cam), 3).repeat(self.seqlen, axis=0)
+        joint_cam = joint_cam.reshape(1, len(joint_cam), 3).repeat(self.seqlen, axis=0)
+        joint_cam_h36m = joint_cam_h36m.reshape(1, len(joint_cam_h36m), 3).repeat(self.seqlen, axis=0)
 
-            inputs = {'pose2d': joint_img, 'img_feature': img_feat}
-            targets = {'mesh': mesh_cam / 1000, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m}
-            meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
+        pose = smpl_param['pose'].reshape(1, len(smpl_param['pose'])).repeat(self.seqlen, axis=0)
+        shape = smpl_param['shape'].reshape(1, len(smpl_param['shape'])).repeat(self.seqlen, axis=0)
 
-            return inputs, targets, meta
+        mesh_valid = np.zeros((1, len(mesh_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        reg_joint_valid = np.zeros((1, len(joint_cam_h36m), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        lift_joint_valid = np.zeros((1, len(joint_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
 
-        elif cfg.MODEL.name == 'PoseEst':
-            # default valid
-            joint_valid = np.ones((len(joint_cam), 1), dtype=np.float32)
-            # compute fitting error
-            error = self.get_fitting_error(tight_bbox, self.joint_imgs[idx], joint_img_coco[:17], self.joint_valids[idx])
-            if error > self.fitting_thr:
-                joint_valid[:, :] = 0
+        mesh_valid[self.seqlen//2] = 1.
+        reg_joint_valid[self.seqlen//2] = 1.
+        lift_joint_valid[self.seqlen//2] = 1.
 
-            return joint_img, joint_cam, joint_valid, img_feat
+        error = self.get_fitting_error(tight_bbox, self.joint_imgs[idx], joint_img_coco[:17], self.joint_valids[idx])
+        if error > self.fitting_thr:
+            mesh_valid[self.seqlen//2], reg_joint_valid[self.seqlen//2], lift_joint_valid[self.seqlen//2] = 0, 0, 0
+        
+        inputs = {'pose2d': joint_img, 'img_feature': img_feat}
+        targets = {'mesh': mesh_cam / 1000, 'pose': pose, 'shape': shape, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m}
+        meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
+
+        return inputs, targets, meta
 
     def replace_joint_img(self, joint_img, bbox):
         if self.input_joint_name == 'coco':

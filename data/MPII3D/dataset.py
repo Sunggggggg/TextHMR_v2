@@ -394,8 +394,9 @@ class MPII3D(torch.utils.data.Dataset):
     
     def get_single_item(self, idx):
         start_index, end_index = self.vid_indices[idx]
-        joint_imgs = []
-        img_features = []
+        joint_imgs, img_features = [], []
+        poses, shapes, meshes, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], []
+        mesh_valids, reg_joint_valids, lift_joint_valids = [], [], []
         for num in range(self.seqlen):
             if start_index == end_index:
                 single_idx = start_index
@@ -426,43 +427,44 @@ class MPII3D(torch.utils.data.Dataset):
             joint_imgs.append(joint_img_coco.reshape(1, len(joint_img_coco), 2))
             img_features.append(img_feature.reshape(1, 2048))
             
-            if cfg.MODEL.name == 'PMCE':
-                if num == int(self.seqlen / 2):
-                    # default valid
-                    mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender, cam_param_R, cam_param_t)
-                    # root relative camera coordinate
-                    mesh_cam = mesh_cam - root_coor
-                        
-                    mesh_valid = np.ones((len(mesh_cam), 1), dtype=np.float32)
-                    reg_joint_valid = np.ones((len(joint_cam_h36m), 1), dtype=np.float32)
-                    lift_joint_valid = np.ones((len(joint_cam_coco), 1), dtype=np.float32)
-                    
-                    if self.data_split == 'train':
-                        error = self.get_fitting_error(tight_bbox, self.pred_pose2ds[single_idx][:17], gt_joint_img_coco[:17], self.joint_valids[single_idx][:17])
-                        if error > self.fitting_thr:
-                            mesh_valid[:], reg_joint_valid[:], lift_joint_valid[:] = 0, 0, 0
+            # Target processing
+            poses.append(pose_param.reshape(1, len(pose_param)))
+            shapes.append(shape_param.reshape(1, len(shape_param)))
+            
+            mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender)
+            mesh_cam = mesh_cam - root_coor
 
-                    targets = {'mesh': mesh_cam / 1000, 'lift_pose3d': joint_cam_coco, 'reg_pose3d': joint_cam_h36m}
-                    meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid}
+            mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
+            reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
+            lift_joint_valid = np.ones((1, len(joint_cam_coco), 1), dtype=np.float32)
 
-            elif cfg.MODEL.name == 'PoseEst' and num == int(self.seqlen / 2):
-                # default valid
-                posenet_joint_cam = joint_cam_coco
-                joint_valid = np.ones((len(joint_img_coco), 1), dtype=np.float32)
-                # compute fitting error
-                if self.data_split == 'train':
-                    error = self.get_fitting_error(tight_bbox, self.pred_pose2ds[single_idx][:17], gt_joint_img_coco[:17], self.joint_valids[single_idx][:17])
-                    if error > self.fitting_thr:
-                        joint_valid[:, :] = 0
-        
+            meshes.append(mesh_cam / 1000)
+            lift_pose3d_poses.append(joint_cam_coco)
+            reg_pose3d_poses.append(joint_cam_h36m)
+            mesh_valids.append(mesh_valid)
+            reg_joint_valids.append(reg_joint_valid)
+            lift_joint_valids.append(lift_joint_valid)
+
+        # Input
         joint_imgs = np.concatenate(joint_imgs)
         img_features = np.concatenate(img_features)
-        if cfg.MODEL.name == 'PMCE':
-            inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-            return inputs, targets, meta
-        
-        elif cfg.MODEL.name == 'PoseEst':
-            return joint_imgs, posenet_joint_cam, joint_valid, img_features
+
+        # Target
+        meshes = np.concatenate(meshes)
+        poses = np.concatenate(poses)
+        shapes = np.concatenate(shapes)
+        lift_pose3d_poses = np.concatenate(lift_pose3d_poses)
+        reg_pose3d_poses = np.concatenate(reg_pose3d_poses)
+
+        # Meta
+        mesh_valids = np.concatenate(mesh_valids)
+        reg_joint_valids = np.concatenate(reg_joint_valids)
+        lift_joint_valids = np.concatenate(lift_joint_valids)
+
+        inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
+        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids}
+        return inputs, targets, meta
 
     def get_single_item_val(self, idx):
         start_index, end_index = self.vid_indices[idx]

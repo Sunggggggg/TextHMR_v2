@@ -212,6 +212,7 @@ class PW3D(torch.utils.data.Dataset):
         start_index, end_index = self.vid_indices[idx]
         joint_imgs, img_features = [], []
         poses, shapes, meshes, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], []
+        mesh_valids, reg_joint_valids, lift_joint_valids = [], [], []
         for num in range(self.seqlen):
             if start_index == end_index:
                 single_idx = start_index
@@ -247,20 +248,37 @@ class PW3D(torch.utils.data.Dataset):
             mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender)
             mesh_cam = mesh_cam - root_coor
 
+            mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
+            reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
+            lift_joint_valid = np.ones((1, len(joint_cam_coco), 1), dtype=np.float32)
+
             meshes.append(mesh_cam / 1000)
             lift_pose3d_poses.append(joint_cam_coco)
             reg_pose3d_poses.append(joint_cam_h36m)
+            mesh_valids.append(mesh_valid)
+            reg_joint_valids.append(reg_joint_valid)
+            lift_joint_valids.append(lift_joint_valid)
 
+        # Input
         joint_imgs = np.concatenate(joint_imgs)
         img_features = np.concatenate(img_features)
 
+        # Target
         meshes = np.concatenate(meshes)
+        poses = np.concatenate(poses)
+        shapes = np.concatenate(shapes)
         lift_pose3d_poses = np.concatenate(lift_pose3d_poses)
         reg_pose3d_poses = np.concatenate(reg_pose3d_poses)
 
+        # Meta
+        mesh_valids = np.concatenate(mesh_valids)
+        reg_joint_valids = np.concatenate(reg_joint_valids)
+        lift_joint_valids = np.concatenate(lift_joint_valids)
+
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-        targets = {'mesh': meshes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
-        return inputs, targets
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
+        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids}
+        return inputs, targets, meta
 
     def compute_joint_err(self, pred_joint, target_joint):
         # root align joint, coco joint set
