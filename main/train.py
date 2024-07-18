@@ -9,7 +9,7 @@ import __init_path
 from funcs_utils import save_checkpoint, check_data_pararell, count_parameters
 from core.config import cfg, update_config
 
-parser = argparse.ArgumentParser(description='Train Pose2Mesh')
+parser = argparse.ArgumentParser(description='Train')
 
 parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
 parser.add_argument('--resume_training', action='store_true', help='Resume Training')

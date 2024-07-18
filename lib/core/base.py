@@ -1,16 +1,25 @@
+import os
 import numpy as np
 import torch
 from tqdm import tqdm
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from collections import Counter
-
-#import models
+# Model
+import models.TextHMR
+# Dataset
 import Human36M.dataset, COCO.dataset, PW3D.dataset, MPII3D.dataset, MPII.dataset
+from multiple_datasets import MultipleDatasets
+# Trainer
 from core.config import cfg
 from core.loss import get_loss
-from multiple_datasets import MultipleDatasets
 from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
+
+def read_pkl(data_url):
+    file = open(data_url,'rb')
+    content = pickle.load(file)
+    file.close()
+    return content 
 
 def get_dataloader(args, dataset_names, is_train):
     dataset_split = 'TRAIN' if is_train else 'TEST'
@@ -40,6 +49,7 @@ def get_dataloader(args, dataset_names, is_train):
         return dataset_list, batch_generator
 
 def prepare_network(args, load_dir='', is_train=True):
+    # Dataset loader
     dataset_names = cfg.DATASET.train_list if is_train else cfg.DATASET.test_list
     dataset_list, dataloader = get_dataloader(args, dataset_names, is_train)
     print(f"==> Dataset load done!")
@@ -49,19 +59,23 @@ def prepare_network(args, load_dir='', is_train=True):
 
     main_dataset = dataset_list[0]
     J_regressor = eval(f'torch.Tensor(main_dataset.joint_regressor_{cfg.DATASET.input_joint_set})')
+    
+    # Model
     if is_train or load_dir:
         print(f"==> Preparing {cfg.MODEL.name} MODEL...")
-        if cfg.MODEL.name == 'PMCE':
-            model = models.PMCE.get_model(num_joint=main_dataset.joint_num, embed_dim=cfg.MODEL.hpe_dim, depth=cfg.MODEL.hpe_dep)
-        elif cfg.MODEL.name == 'PoseEst':
-            model = models.PoseEstimation.get_model(num_joint=main_dataset.joint_num, embed_dim=cfg.MODEL.hpe_dim, depth=cfg.MODEL.hpe_dep, pretrained=False)
+        text_embeds = read_pkl(os.path.join(cfg.TEXT.data_root, 'total_description_embedding.pkl'))
+        num_motion = len(text_embeds)
+        
+        model = models.TextHMR.model.get_model(num_motion, text_embeds, cfg.TEXT.PRETRAINED)
         print('# of model parameters: {}'.format(count_parameters(model)))
 
+    # For training
     if is_train:
         criterion = get_loss(faces=main_dataset.mesh_model.face)
         optimizer = get_optimizer(model=model)
         lr_scheduler = get_scheduler(optimizer=optimizer)
 
+    # Load checkpoint
     if load_dir and (not is_train or args.resume_training):
         print('==> Loading checkpoint')
         checkpoint = load_checkpoint(load_dir=load_dir, pick_best=(cfg.MODEL.name == 'PoseEst'))
@@ -108,6 +122,10 @@ class Trainer:
         self.edge_weight = cfg.MODEL.edge_loss_weight
         self.joint_weight = cfg.MODEL.joint_loss_weight
         self.edge_add_epoch = cfg.TRAIN.edge_loss_start
+        self.shape_weight = cfg.MODEL.shape_loss_weight
+        self.pose_weight = cfg.MODEL.pose_loss_weight
+
+        self.seqlen = cfg.DATASET.seqlen
 
     def train(self, epoch):
         self.model.train()
@@ -117,28 +135,27 @@ class Trainer:
         running_loss = 0.0
         batch_generator = tqdm(self.batch_generator)
         for i, (inputs, targets, meta) in enumerate(batch_generator):
-            # convert to cuda
             input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
-            gt_lift3dpose, gt_reg3dpose, gt_mesh = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda(), targets['mesh'].cuda()
+            gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
+            gt_mesh, gt_pose, gt_shape = targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda()
             val_lift3dpose, val_reg3dpose, val_mesh = meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda()
 
-            pred_mesh, evo_pose, pose3d = self.model(input_pose, input_feat) 
-            pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh * 1000)
-            evo_pose = evo_pose * 1000
+            smpl_output, pred_pose_3d = self.model(input_pose, input_feat, is_train=True, J_regressor=self.J_regressor)
 
-            # loss
-            loss1, loss2, loss4, loss5, loss6 = self.loss[0](pred_mesh, gt_mesh, val_mesh),  \
-                                         self.normal_weight * self.loss[1](pred_mesh, gt_mesh), \
-                                         self.joint_weight * self.loss[3](pred_pose, gt_reg3dpose, val_reg3dpose), \
-                                         self.joint_weight * self.loss[4](evo_pose, gt_lift3dpose, val_lift3dpose), \
-                                         self.joint_weight * self.loss[5](pose3d, gt_lift3dpose, val_lift3dpose)
-                            
-            loss3 = 0
-            loss = loss1 + loss2 + loss3 + loss4 + loss5 + loss6
+            # Data
+            smpl_output = smpl_output[-1]
+            pred_theta = smpl_output['theta']       # [B, T, 3+72+10]
+            pred_mesh = smpl_output['verts']        # [B, T, 6890, 3]
+            #pred_kp_2d = smpl_output['kp_2d']       # [B, T, 49, 2]
+            #pred_kp_3d = smpl_output['kp_3d']       # [B, T, 49, 3]
+            pred_cam, pred_pose, pred_shape = pred_theta[:, :3], pred_theta[:, 3:75], pred_theta[:, 75:]
+            pred_kp_3d = torch.matmul(self.J_regressor[None, :, :], pred_mesh * 1000)    # milmeter
 
-            if epoch > self.edge_add_epoch:
-                loss3 = self.edge_weight * self.loss[2](pred_mesh, gt_mesh)
-                loss += loss3
+            loss = self.loss[0](pred_mesh, gt_mesh, val_mesh) + \
+            self.pose_weight * self.loss[1](pred_pose, gt_pose) + \
+            self.shape_weight * self.loss[2](pred_shape, gt_shape) + \
+            self.joint_weight * self.loss[3](pred_pose_3d, gt_lift3dpose, val_lift3dpose) + \
+            self.joint_weight * self.loss[4](pred_kp_3d, gt_reg3dpose, val_reg3dpose)
 
             # update weights
             self.optimizer.zero_grad()

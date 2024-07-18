@@ -96,6 +96,11 @@ cfg.TEST.shuffle = False
 cfg.TEST.vis = False
 cfg.TEST.weight_path = './experiment/pretrained/mesh_3dpw.pth.tar'
 
+"""Model Detail"""
+cfg.TEXT = edict()
+cfg.TEXT.data_root = ''
+cfg.TEXT.PRETRAINED = ''
+
 
 def _update_dict(k, v):
     for vk, vv in v.items():

@@ -18,6 +18,21 @@ class CoordLoss(nn.Module):
 
         return loss
 
+class MSELoss(nn.Module):
+    def __init__(self, has_valid=False):
+        super(MSELoss, self).__init__()
+
+        self.has_valid = has_valid
+        self.criterion = nn.MSELoss(reduction='mean')
+
+    def forward(self, pred, target, target_valid):
+        if self.has_valid:
+            pred, target = pred * target_valid, target * target_valid
+
+        loss = self.criterion(pred, target)
+
+        return loss
+
 
 class LaplacianLoss(nn.Module):
     def __init__(self, faces, average=False):
@@ -107,8 +122,15 @@ class EdgeLengthLoss(nn.Module):
         loss = torch.cat((diff1, diff2, diff3), 1)
         return loss.mean()
 
-def get_loss(faces):
-    loss = CoordLoss(has_valid=True), NormalVectorLoss(faces), EdgeLengthLoss(faces), \
-           CoordLoss(has_valid=True), CoordLoss(has_valid=True), CoordLoss(has_valid=True)
+def get_loss():
+    """
+    mesh
+    pose
+    shape
+    lift
+    kp3d
+    """
+    loss = CoordLoss(has_valid=True), CoordLoss(has_valid=False), CoordLoss(has_valid=False),\
+        MSELoss(has_valid=True), MSELoss(has_valid=True)
 
     return loss

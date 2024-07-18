@@ -252,7 +252,7 @@ class PW3D(torch.utils.data.Dataset):
             reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
             lift_joint_valid = np.ones((1, len(joint_cam_coco), 1), dtype=np.float32)
 
-            meshes.append(mesh_cam / 1000)
+            meshes.append(mesh_cam / 1000)  # meter
             lift_pose3d_poses.append(joint_cam_coco)
             reg_pose3d_poses.append(joint_cam_h36m)
             mesh_valids.append(mesh_valid)

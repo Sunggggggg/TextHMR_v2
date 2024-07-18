@@ -8,31 +8,23 @@ DATASET:
     use_gt_input: False
 
 MODEL:
-    name: 'Ours'
-    hpe_dim: 256
-    hpe_dep: 3
-    joint_dim: 64
-    vertx_dim: 64
-    normal_loss_weight: 0.1
-    edge_loss_weight: 20
-    joint_loss_weight: 0.001
-    posenet_pretrained: True
-    posenet_path: './experiment/pretrained/pose_3dpw.pth.tar'
+    name: TextHMR
+    embed_dim: 512
+    joint_loss_weight: 20
+    shape_weight: 0.06
+    pose_weight: 60.0
 
 TRAIN:
-    print_freq: 20
-    batch_size: 32
+    batch_size: 8
     shuffle: True
     begin_epoch: 1
     end_epoch: 20
-    edge_loss_start: 2
     scheduler: 'step'
-    lr: 0.00005
+    lr: 5e-5
     lr_step: [2, 4, 6, 8, 10, 12, 15]
-    lr_factor: 0.9
+    lr_factor: 0.95
     optimizer: 'adam'
-    wandb: True
 
 TEST:
-    batch_size: 64
-    shuffle: False
+    batch_size: 8
+    shuffle: Fasle
