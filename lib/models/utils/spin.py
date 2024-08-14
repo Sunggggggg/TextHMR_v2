@@ -8,7 +8,6 @@ import os.path as osp
 import torch.nn as nn
 import torchvision.models.resnet as resnet
 
-from lib.core.config import BASE_DATA_DIR
 from lib.models.utils.geometry import rotation_matrix_to_angle_axis, rot6d_to_rotmat
 from lib.models.utils.smpl import SMPL, SMPL_MODEL_DIR, H36M_TO_J14, SMPL_MEAN_PARAMS
 
@@ -372,10 +371,10 @@ def perspective_projection(points, rotation, translation,
     return projected_points[:, :, :-1]
 
 
-def get_pretrained_hmr():
-    device = 'cuda'
-    model = hmr().to(device)
-    checkpoint = torch.load(osp.join(BASE_DATA_DIR, 'spin_model_checkpoint.pth.tar'))
-    model.load_state_dict(checkpoint['model'], strict=False)
-    model.eval()
-    return model
+# def get_pretrained_hmr():
+#     device = 'cuda'
+#     model = hmr().to(device)
+#     checkpoint = torch.load(osp.join(BASE_DATA_DIR, 'spin_model_checkpoint.pth.tar'))
+#     model.load_state_dict(checkpoint['model'], strict=False)
+#     model.eval()
+#     return model
