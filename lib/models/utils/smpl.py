@@ -8,7 +8,7 @@ from smplx import SMPL as _SMPL
 from smplx.body_models import ModelOutput
 from smplx.lbs import vertices2joints
 
-from lib.core.config import BASE_DATA_DIR
+from core.config import BASE_DATA_DIR
 
 # Map joints to SMPL joints
 JOINT_MAP = {
