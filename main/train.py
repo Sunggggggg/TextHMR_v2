@@ -31,30 +31,31 @@ print("Work on GPU: ", os.environ['CUDA_VISIBLE_DEVICES'])
 from core.base import Trainer, Tester
 
 trainer = Trainer(args, load_dir='')
-tester = Tester(args)  # if not args.debug else None
+# tester = Tester(args)  # if not args.debug else None
 
 print("===> Start training...")
-# for epoch in range(cfg.TRAIN.begin_epoch, cfg.TRAIN.end_epoch + 1):
-#     trainer.train(epoch)
-#     trainer.lr_scheduler.step()
+for epoch in range(cfg.TRAIN.begin_epoch, cfg.TRAIN.end_epoch + 1):
+    trainer.train(epoch)
+    trainer.lr_scheduler.step()
 
-#     tester.test(epoch, current_model=trainer.model)
+    # tester.test(epoch, current_model=trainer.model)
 
-#     if epoch > 1:
-#         is_best = tester.joint_error < min(trainer.error_history['joint'])
-#     else:
-#         is_best = None
+    # if epoch > 1:
+    #     is_best = tester.joint_error < min(trainer.error_history['joint'])
+    # else:
+    #     is_best = None
 
-#     trainer.error_history['surface'].append(tester.surface_error)
-#     trainer.error_history['joint'].append(tester.joint_error)
+    # trainer.error_history['surface'].append(tester.surface_error)
+    # trainer.error_history['joint'].append(tester.joint_error)
 
-#     save_checkpoint({
-#         'epoch': epoch,
-#         'model_state_dict': check_data_pararell(trainer.model.state_dict()),  # 
-#         'optim_state_dict': trainer.optimizer.state_dict(),
-#         'scheduler_state_dict': trainer.lr_scheduler.state_dict(),
-#         'train_log': trainer.loss_history,
-#         'test_log': trainer.error_history
-#     }, epoch, is_best)
-
-# print('Training Finished! All logs were saved in ', cfg.checkpoint_dir)
+    # save_checkpoint({
+    #     'epoch': epoch,
+    #     'model_state_dict': check_data_pararell(trainer.model.state_dict()),  # 
+    #     'optim_state_dict': trainer.optimizer.state_dict(),
+    #     'scheduler_state_dict': trainer.lr_scheduler.state_dict(),
+    #     'train_log': trainer.loss_history,
+    #     'test_log': trainer.error_history
+    # }, epoch, is_best)
+    
+    break
+print('Training Finished! All logs were saved in ', cfg.checkpoint_dir)
