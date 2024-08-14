@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from collections import Counter
 # Model
-import models.TextHMR
+import models.model
 # Dataset
 import Human36M.dataset, COCO.dataset, PW3D.dataset, MPII3D.dataset, MPII.dataset
 from multiple_datasets import MultipleDatasets
@@ -14,12 +14,6 @@ from multiple_datasets import MultipleDatasets
 from core.config import cfg
 from core.loss import get_loss, get_loss_dict
 from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
-
-def read_pkl(data_url):
-    file = open(data_url,'rb')
-    content = pickle.load(file)
-    file.close()
-    return content 
 
 def get_dataloader(args, dataset_names, is_train):
     dataset_split = 'TRAIN' if is_train else 'TEST'
@@ -63,10 +57,7 @@ def prepare_network(args, load_dir='', is_train=True):
     # Model
     if is_train or load_dir:
         print(f"==> Preparing {cfg.MODEL.name} MODEL...")
-        text_embeds = read_pkl(os.path.join(cfg.TEXT.data_root, 'total_description_embedding.pkl'))
-        num_motion = len(text_embeds)
-        
-        model = models.TextHMR.model.get_model(num_motion, text_embeds, cfg.TEXT.PRETRAINED)
+        model = models.model()
         print('# of model parameters: {}'.format(count_parameters(model)))
 
     # For training
