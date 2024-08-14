@@ -42,6 +42,11 @@ class Model(nn.Module):
                                     num_head=8,  dropout=dropout,  drop_path_r=drop_path_r, atten_drop=atten_drop, mask_ratio=0.5)
         self.r_regrossor = R_Regressor(embed_dim//2)
 
+    def padding(self, pose2d):
+        padding = torch.zeros_like(pose2d, device=pose2d.device)[..., 0:1]
+        pose2d = torch.cat([pose2d, padding], dim=-1)
+        return pose2d
+
     def return_output(self, smpl_output):
         theta = smpl_output['theta']
         pred_cam, pred_pose, pred_shape = theta[..., :3], theta[..., 3:75], theta[..., 75:]
