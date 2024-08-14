@@ -20,7 +20,12 @@ class R_Regressor(nn.Module):
         nn.init.xavier_uniform_(self.decshape.weight, gain=0.01)
         nn.init.xavier_uniform_(self.deccam.weight, gain=0.01)
 
-    
+        self.smpl = SMPL(
+            SMPL_MODEL_DIR,
+            batch_size=64,
+            create_transl=False
+        )
+
     def forward(self, x, init_pose, init_shape, init_cam, n_iter=3, is_train=False, J_regressor=None):
         B, seq_len = x.shape[:2]
         x = x.reshape(-1, x.size(-1))
