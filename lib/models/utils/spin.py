@@ -8,8 +8,8 @@ import os.path as osp
 import torch.nn as nn
 import torchvision.models.resnet as resnet
 
-from lib.models.utils.geometry import rotation_matrix_to_angle_axis, rot6d_to_rotmat
-from lib.models.utils.smpl import SMPL, SMPL_MODEL_DIR, H36M_TO_J14, SMPL_MEAN_PARAMS
+from models.utils.geometry import rotation_matrix_to_angle_axis, rot6d_to_rotmat
+from models.utils.smpl import SMPL, SMPL_MODEL_DIR, H36M_TO_J14, SMPL_MEAN_PARAMS
 
 class Bottleneck(nn.Module):
     """
