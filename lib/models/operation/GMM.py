@@ -5,7 +5,7 @@ import os.path as osp
 import torch.nn as nn
 import numpy as np
 import os
-from lib.core.config import cfg
+from core.config import cfg
 
 from ..utils.smpl import SMPL_MEAN_PARAMS
 from ..utils.spin import Regressor
