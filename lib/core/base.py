@@ -57,7 +57,7 @@ def prepare_network(args, load_dir='', is_train=True):
     # Model
     if is_train or load_dir:
         print(f"==> Preparing {cfg.MODEL.name} MODEL...")
-        model = models.model()
+        model = models.model.Model()
         print('# of model parameters: {}'.format(count_parameters(model)))
 
     # For training
