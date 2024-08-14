@@ -8,31 +8,36 @@ class CoordLoss(nn.Module):
         super(CoordLoss, self).__init__()
 
         self.has_valid = has_valid
-        self.criterion = nn.L1Loss(reduction='mean')
+        self.criterion = nn.L1Loss(reduction='none')
 
-    def forward(self, pred, target, target_valid):
+    def forward(self, pred, target, target_valid, mask_ids=None):
         if self.has_valid:
             pred, target = pred * target_valid, target * target_valid
-
         loss = self.criterion(pred, target)
-
-        return loss
+        
+        
+        if mask_ids is not None :
+            return (mask_ids.unsqueeze(-1) * loss).mean()
+        else :
+            return loss.mean()
 
 class MSELoss(nn.Module):
     def __init__(self, has_valid=False):
         super(MSELoss, self).__init__()
 
         self.has_valid = has_valid
-        self.criterion = nn.MSELoss(reduction='mean')
+        self.criterion = nn.MSELoss(reduction='none')
 
-    def forward(self, pred, target, target_valid):
+    def forward(self, pred, target, target_valid, mask_ids=None):
         if self.has_valid:
             pred, target = pred * target_valid, target * target_valid
 
         loss = self.criterion(pred, target)
 
-        return loss
-
+        if mask_ids is not None :
+            return (mask_ids.unsqueeze(-1) * loss).mean()
+        else :
+            return loss.mean()
 
 class LaplacianLoss(nn.Module):
     def __init__(self, faces, average=False):
@@ -134,3 +139,6 @@ def get_loss():
         MSELoss(has_valid=True), MSELoss(has_valid=True)
 
     return loss
+
+def get_loss_dict():
+    return {"L2":MSELoss(has_valid=True), "L1": CoordLoss(has_valid=False)}

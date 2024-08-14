@@ -12,7 +12,7 @@ import Human36M.dataset, COCO.dataset, PW3D.dataset, MPII3D.dataset, MPII.datase
 from multiple_datasets import MultipleDatasets
 # Trainer
 from core.config import cfg
-from core.loss import get_loss
+from core.loss import get_loss, get_loss_dict
 from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
 
 def read_pkl(data_url):
@@ -71,7 +71,7 @@ def prepare_network(args, load_dir='', is_train=True):
 
     # For training
     if is_train:
-        criterion = get_loss(faces=main_dataset.mesh_model.face)
+        criterion = get_loss_dict()
         optimizer = get_optimizer(model=model)
         lr_scheduler = get_scheduler(optimizer=optimizer)
 
@@ -124,6 +124,7 @@ class Trainer:
         self.edge_add_epoch = cfg.TRAIN.edge_loss_start
         self.shape_weight = cfg.MODEL.shape_loss_weight
         self.pose_weight = cfg.MODEL.pose_loss_weight
+        self.trans_weight = cfg.MODEL.pose_loss_weight
 
         self.seqlen = cfg.DATASET.seqlen
 
@@ -137,25 +138,31 @@ class Trainer:
         for i, (inputs, targets, meta) in enumerate(batch_generator):
             input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
             gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
-            gt_mesh, gt_pose, gt_shape = targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda()
-            val_lift3dpose, val_reg3dpose, val_mesh = meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda()
+            gt_mesh, gt_pose, gt_shape, gt_trans, gt_kp3d = \
+                  targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda(), targets['kp3d_pose'].cuda()
+            val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans, val_kp =\
+                  meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['kp_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
 
-            smpl_output, pred_pose_3d = self.model(input_pose, input_feat, is_train=True, J_regressor=self.J_regressor)
+            # keypoint  : pred_kp3d(49x3), pred_kp2d(49x3), pred_lift3d(19x3)
+            # SMPL      : pred_mesh(6890x3), pred_pose(24x3), pred_shape(10)
+            lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
-            # Data
-            smpl_output = smpl_output[-1]
-            pred_theta = smpl_output['theta']       # [B, T, 3+72+10]
-            pred_mesh = smpl_output['verts']        # [B, T, 6890, 3]
-            #pred_kp_2d = smpl_output['kp_2d']       # [B, T, 49, 2]
-            #pred_kp_3d = smpl_output['kp_3d']       # [B, T, 49, 3]
-            pred_cam, pred_pose, pred_shape = pred_theta[:, :3], pred_theta[:, 3:75], pred_theta[:, 75:]
-            pred_kp_3d = torch.matmul(self.J_regressor[None, :, :], pred_mesh * 1000)    # milmeter
+            pred_kp3d_global = torch.matmul(self.J_regressor[None, :, :], pred_global[0] * 1000)    # mm2m
+            pred_kp3d = torch.matmul(self.J_regressor[None, :, :], pred[0] * 1000)                  # mm2m
+            loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids) + \
+                self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose)
 
-            loss = self.loss[0](pred_mesh, gt_mesh, val_mesh) + \
-            self.pose_weight * self.loss[1](pred_pose, gt_pose) + \
-            self.shape_weight * self.loss[2](pred_shape, gt_shape) + \
-            self.joint_weight * self.loss[3](pred_pose_3d, gt_lift3dpose, val_lift3dpose) + \
-            self.joint_weight * self.loss[4](pred_kp_3d, gt_reg3dpose, val_reg3dpose)
+            loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose)
+            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids)+\
+                self.loss['L1'](pred[0], gt_mesh, val_mesh)
+            loss_pose = self.pose_weight * self.loss['L1'](pred_global[1], gt_pose, val_pose, mask_ids)+\
+                self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose)
+            loss_shape = self.shape_weight * self.loss['L1'](pred_global[2], gt_shape, val_shape, mask_ids)+\
+                self.shape_weight * self.loss['L1'](pred[2], gt_shape, val_shape)
+            loss_trans = self.trans_weight * self.loss['L1'](pred_global[3], gt_trans, val_trans, mask_ids)+\
+                self.trans_weight * self.loss['L1'](pred[3], gt_trans, val_trans)
+            
+            loss = loss_kp3d + loss_lift3d + loss_mesh + loss_pose + loss_shape + loss_trans
 
             # update weights
             self.optimizer.zero_grad()
@@ -166,15 +173,12 @@ class Trainer:
             running_loss += float(loss.detach().item())
 
             if i % self.print_freq == 0:
-                loss1, loss2, loss4, loss5 = loss1.detach(), loss2.detach(), loss4.detach(), loss5.detach()
+                loss1, loss2, loss4, loss5 = loss_mesh.detach(), loss2.detach(), loss_kp3d.detach(), loss5.detach()
                 loss3 = loss3.detach() if epoch > self.edge_add_epoch else 0
-                loss6 = loss6.detach()
+                loss6 = loss_lift3d.detach()
                 batch_generator.set_description(f'Epoch{epoch}_({i}/{len(batch_generator)}) => '
                                                 f'vertice loss: {loss1:.4f} '
-                                                f'normal loss: {loss2:.4f} '
-                                                f'edge loss: {loss3:.4f} '
                                                 f'mesh->3d joint loss: {loss4:.4f} '
-                                                f'evo joint loss: {loss5:.4f} '
                                                 f'lift joint loss: {loss6:.4f} ')
 
         self.loss_history.append(running_loss / len(batch_generator))

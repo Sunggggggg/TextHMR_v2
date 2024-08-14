@@ -28,7 +28,7 @@ np.random.seed(args.seed)
 os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 print("Work on GPU: ", os.environ['CUDA_VISIBLE_DEVICES'])
 
-from lib.core.base import Trainer, Tester
+from core.base import Trainer, Tester
 
 trainer = Trainer(args, load_dir='')
 tester = Tester(args)  # if not args.debug else None

@@ -450,8 +450,8 @@ class Human36M(torch.utils.data.Dataset):
     def get_single_item(self, idx):
         start_index, end_index = self.vid_indices[idx]
         joint_imgs, img_features = [], []
-        poses, shapes, meshes, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], []
-        mesh_valids, reg_joint_valids, lift_joint_valids = [], [], []
+        poses, shapes, transs, meshes, kp3d_poses, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], [], [], []
+        pose_valids, shape_valids, trans_valids, mesh_valids, kp_valids, reg_joint_valids, lift_joint_valids = [], [], [], [], [], [], []
         flip, rot = 0, 0
         for num in range(self.seqlen):
             if start_index == end_index:
@@ -501,15 +501,21 @@ class Human36M(torch.utils.data.Dataset):
             # Target processing
             poses.append(smpl_param['pose'].reshape(1, len(smpl_param['pose'])))
             shapes.append(smpl_param['shape'].reshape(1, len(smpl_param['shape'])))
-            
+            transs.append(smpl_param['trans'].reshape(1, len(smpl_param['trans'])))
+
             mesh_cam, joint_h36m_from_mesh = self.get_smpl_coord(smpl_param, cam_param)
+            joint_h36m_from_mesh = joint_h36m_from_mesh - root_coord
             mesh_cam = mesh_cam - root_coord
 
             # draw_nodes_nodes(joint_cam_h36m, mesh_cam)
             mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
+            kp_valid = np.ones((1, len(joint_h36m_from_mesh), 1), dtype=np.float32)
             reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
             lift_joint_valid = np.ones((1, len(joint_cam), 1), dtype=np.float32)
-            
+            pose_valid = np.ones((1, len(smpl_param['pose']), 1), dtype=np.float32)
+            shape_valid = np.ones((1, len(smpl_param['shape']), 1), dtype=np.float32)
+            trans_valid = np.ones((1, len(smpl_param['trans']), 1), dtype=np.float32)
+
             # if fitted mesh is too far from h36m gt, discard it
             error = self.get_fitting_error(joint_cam_h36m, mesh_cam)
             if error > self.fitting_thr:
@@ -517,12 +523,20 @@ class Human36M(torch.utils.data.Dataset):
                 if self.input_joint_name == 'coco':
                     lift_joint_valid[:] = 0
 
-            meshes.append(mesh_cam / 1000)
+            # SMPL
+            meshes.append(mesh_cam / 1000)              # meter
+            kp3d_poses.append(joint_h36m_from_mesh / 1000)    # meter
+            # Joint
             lift_pose3d_poses.append(joint_cam_coco)
             reg_pose3d_poses.append(joint_cam_h36m)
+             # Meta
             mesh_valids.append(mesh_valid)
             reg_joint_valids.append(reg_joint_valid)
             lift_joint_valids.append(lift_joint_valid)
+            kp_valids.append(kp_valid)
+            pose_valids.append(pose_valid)
+            shape_valids.append(shape_valid)
+            trans_valids.append(trans_valid)
 
         # Input
         joint_imgs = np.concatenate(joint_imgs)
@@ -534,15 +548,21 @@ class Human36M(torch.utils.data.Dataset):
         shapes = np.concatenate(shapes)
         lift_pose3d_poses = np.concatenate(lift_pose3d_poses)
         reg_pose3d_poses = np.concatenate(reg_pose3d_poses)
+        kp3d_poses = np.concatenate(kp3d_poses)
 
         # Meta
         mesh_valids = np.concatenate(mesh_valids)
         reg_joint_valids = np.concatenate(reg_joint_valids)
         lift_joint_valids = np.concatenate(lift_joint_valids)
+        kp_valids = np.concatenate(kp_valids)
+        pose_valids = np.concatenate(pose_valids)
+        shape_valids = np.concatenate(shape_valids)
+        trans_valids = np.concatenate(trans_valids)
 
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
-        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids}
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses, 'kp3d_pose': kp3d_poses}
+        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids, 'kp_valid': kp_valids,
+                'pose_valid': pose_valids, 'shape_valid': shape_valids, 'trans_valid': trans_valids}
         return inputs, targets, meta
 
     def normalize_screen_coordinates(self, X, w, h):

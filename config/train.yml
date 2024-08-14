@@ -13,6 +13,7 @@ MODEL:
     joint_loss_weight: 20
     shape_weight: 0.06
     pose_weight: 60.0
+    trans_weight: 0.06
 
 TRAIN:
     batch_size: 8
