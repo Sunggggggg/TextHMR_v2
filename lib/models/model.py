@@ -59,6 +59,7 @@ class Model(nn.Module):
 
     def forward(self, f_img, pose_2d, is_train=False, J_regressor=None):
         B, T = f_img.shape[:2]
+        pose_2d = self.padding(pose_2d)
         # Lifting feat
         lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] # mm
         lift3d_pos = lift3d_pos / 1000                # m
