@@ -313,7 +313,7 @@ class MSCOCO(torch.utils.data.Dataset):
             mesh_valid[self.seqlen//2], reg_joint_valid[self.seqlen//2], lift_joint_valid[self.seqlen//2] = 0, 0, 0
         
         inputs = {'pose2d': joint_img, 'img_feature': img_feat}
-        targets = {'mesh': mesh_cam / 1000, 'pose': pose, 'shape': shape, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m, 'kp3d_pose':joint_cam_smpl}
+        targets = {'mesh': mesh_cam / 1000, 'pose': pose, 'shape': shape, 'trans':trans, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m, 'kp3d_pose':joint_cam_smpl}
         meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid, 'kp_valid': kp_valid,
                 'pose_valid': pose_valid, 'shape_valid': shape_valid, 'trans_valid': trans_valid}
 

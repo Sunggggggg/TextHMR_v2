@@ -296,7 +296,7 @@ class PW3D(torch.utils.data.Dataset):
         trans_valids = np.concatenate(trans_valids)
 
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses, 'kp3d_pose': kp3d_poses}
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'trans':transs, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses, 'kp3d_pose': kp3d_poses}
         meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': reg_joint_valids, 'reg_pose3d_valid': lift_joint_valids, 'kp_valid': kp_valids,
                 'pose_valid': pose_valids, 'shape_valid': shape_valids, 'trans_valid': trans_valids}
         return inputs, targets, meta
