@@ -8,7 +8,7 @@ DATASET:
     use_gt_input: False
 
 MODEL:
-    name: TextHMR
+    name: HMR
     embed_dim: 512
     joint_loss_weight: 20
     shape_weight: 0.06
