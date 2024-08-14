@@ -96,10 +96,7 @@ class Human36M(torch.utils.data.Dataset):
         elif self.input_joint_name == 'coco':
             self.stride = 16 if self.data_split == 'train' else 1
 
-        if cfg.MODEL.name == 'PoseEst':
-            self.vid_indices = split_into_chunks_pose(self.img_names, self.seqlen, self.stride, is_train=(set=='train'))
-        elif cfg.MODEL.name == 'PMCE':
-            self.vid_indices = split_into_chunks_mesh(self.img_names, self.seqlen, self.stride, self.poses, is_train=(set=='train'))
+        self.vid_indices = split_into_chunks_mesh(self.img_names, self.seqlen, self.stride, self.poses, is_train=(set=='train'))
 
 
     def load_pose2d_det(self, data_path, skip_list=[]):
