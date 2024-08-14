@@ -113,9 +113,9 @@ class Trainer:
         self.edge_weight = cfg.MODEL.edge_loss_weight
         self.joint_weight = cfg.MODEL.joint_loss_weight
         self.edge_add_epoch = cfg.TRAIN.edge_loss_start
-        self.shape_weight = cfg.MODEL.shape_loss_weight
-        self.pose_weight = cfg.MODEL.pose_loss_weight
-        self.trans_weight = cfg.MODEL.pose_loss_weight
+        self.shape_weight = cfg.MODEL.shape_weight
+        self.pose_weight = cfg.MODEL.pose_weight
+        self.trans_weight = cfg.MODEL.trans_weight
 
         self.seqlen = cfg.DATASET.seqlen
 

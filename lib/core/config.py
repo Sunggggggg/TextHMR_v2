@@ -65,6 +65,9 @@ cfg.MODEL.input_shape = (384, 288)
 cfg.MODEL.normal_loss_weight = 1e-1
 cfg.MODEL.edge_loss_weight = 20
 cfg.MODEL.joint_loss_weight = 1e-3
+cfg.MODEL.shape_weight = 0.06
+cfg.MODEL.pose_weight = 60.0
+cfg.MODEL.trans_weight = 0.06
 cfg.MODEL.posenet_pretrained = False
 cfg.MODEL.posenet_path = './experiment/pretrained/pose_3dpw.pth.tar'
 
