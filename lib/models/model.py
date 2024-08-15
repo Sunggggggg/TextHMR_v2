@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 
+from .operation.transformer import Transformer
 from .operation.TIRG import TIRG
 from .operation.GMM import GMM
 from .operation.DSTformer import DSTformer
@@ -20,6 +21,7 @@ class Model(nn.Module):
                  ) :
         super().__init__()
         self.seqlen = seqlen
+        self.stride = 9
         # Lifter load
         model_backbone = DSTformer()
         if pretrained:
@@ -40,6 +42,8 @@ class Model(nn.Module):
         self.fusing = TIRG(input_dim=[embed_dim//2, embed_dim//2], output_dim=embed_dim//2)
         self.mask_transformer = GMM(seqlen, n_layers=n_layers, d_output=2048, d_model=2048,
                                     num_head=8,  dropout=dropout,  drop_path_r=drop_path_r, atten_drop=atten_drop, mask_ratio=0.5)
+        self.hierical_transformer = Transformer(depth=3, embed_dim=embed_dim//2, mlp_ratio=4.,
+            h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
         self.r_regrossor = R_Regressor(embed_dim//2)
 
     def padding(self, pose2d):
@@ -58,27 +62,32 @@ class Model(nn.Module):
         #          'pred_cam':pred_cam, 'kp_3d':kp_3d}
 
     def forward(self, f_img, pose_2d, is_train=False, J_regressor=None):
+        # Prepare
         B, T = f_img.shape[:2]
         pose_2d = self.padding(pose_2d)
+        
         # Lifting feat
         lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] # mm
         lift3d_pos = lift3d_pos / 1000                # m
 
-        # Init 
+        # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
         smpl_output_global, mask_ids, mem, pred_global = self.mask_transformer(img_feat, is_train=is_train, J_regressor=J_regressor)
         smpl_output_global = self.return_output(smpl_output_global)
 
         # Fusing
-        img_feat = self.proj_img_local(f_img)
-        pose_feat = self.proj_joint(lift3d_pos.flatten(-2))              # [B, T, 512]
-        feat = self.fusing(img_feat, pose_feat)                          # [B, T, 256]
+        sample_start, sample_end = T//2-self.stride//2, T//2+(self.stride//2+1)
 
+        img_feat = self.proj_img_local(f_img[:, sample_start:sample_end])
+        pose_feat = self.proj_joint(lift3d_pos.flatten(-2)[:, sample_start:sample_end]) # [B, stride, 512]
+        feat = self.fusing(img_feat, pose_feat)                                         # [B, stride, 256]
+        feat = self.hierical_transformer(feat)
+        feat = feat[:, self.stride//2-1:self.stride//2+2]
 
         if is_train :
-            feat = feat[:, :]
+            feat = feat
         else :
-            feat
+            feat = feat[:, 1:2]     # [B, 1, 256]
 
         smpl_output = self.r_regrossor(feat, pred_global[0], pred_global[1], pred_global[2], n_iter=3, is_train=is_train, J_regressor=J_regressor)
         smpl_output = self.return_output(smpl_output)
