@@ -44,7 +44,7 @@ class MSELoss(nn.Module):
         loss = self.criterion(pred, target)
 
         if mask_ids is not None :
-            return (mask_ids.unsqueeze(-1) * loss).mean()
+            return (mask_ids * loss).mean()
         else :
             return loss.mean()
 
