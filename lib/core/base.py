@@ -197,6 +197,7 @@ class Trainer:
 
             # Lifting
             loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose)
+            
             # SMPL
             loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))+\
                 self.loss['L1'](pred[0], gt_mesh, val_mesh, short=True)

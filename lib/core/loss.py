@@ -22,7 +22,7 @@ class CoordLoss(nn.Module):
         
         
         if mask_ids is not None :
-            return (mask_ids.unsqueeze(-1) * loss).mean()
+            return (mask_ids * loss).mean()
         else :
             return loss.mean()
 
