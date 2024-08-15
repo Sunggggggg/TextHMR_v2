@@ -37,14 +37,17 @@ class Model(nn.Module):
 
         # Fine-tuning stage
         self.proj_img = nn.Linear(2048, embed_dim)
-        self.proj_joint = nn.Linear(num_joint*3, embed_dim//2)
-        self.proj_img_local = nn.Linear(2048, embed_dim//2)
-        self.fusing = TIRG(input_dim=[embed_dim//2, embed_dim//2], output_dim=embed_dim//2)
+        self.proj_joint = nn.Linear(num_joint*3, embed_dim)
+        self.fusing = nn.Sequential(
+            nn.LayerNorm(embed_dim*2), nn.Linear(embed_dim*2, embed_dim), nn.ReLU(),
+            nn.Linear(embed_dim, embed_dim), nn.ReLU()
+        )
         self.mask_transformer = GMM(seqlen, n_layers=n_layers, d_output=2048, d_model=embed_dim,
-                                    num_head=8,  dropout=dropout,  drop_path_r=drop_path_r, atten_drop=atten_drop, mask_ratio=0.5)
-        self.hierical_transformer = Transformer(depth=3, embed_dim=embed_dim//2, mlp_ratio=4.,
-            h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
-        self.r_regrossor = R_Regressor(embed_dim//2)
+                                    num_head=8,  dropout=dropout, drop_path_r=drop_path_r, atten_drop=atten_drop, mask_ratio=0.5)
+        # self.fusing = TIRG(input_dim=[embed_dim//2, embed_dim//2], output_dim=embed_dim//2)
+        # self.hierical_transformer = Transformer(depth=3, embed_dim=embed_dim//2, mlp_ratio=4.,
+        #     h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
+        # self.r_regrossor = R_Regressor(embed_dim//2)
 
     def return_output(self, smpl_output, is_train):
         theta = smpl_output['theta']
@@ -61,8 +64,6 @@ class Model(nn.Module):
             pred_verts = smpl_output['verts'].reshape(B, -1, 6890, 3)
 
         return pred_verts, pred_pose, pred_shape, pred_cam
-        # return {'pred_verts':pred_verts, 'pred_pose':pred_pose, 'pred_shape':pred_shape,
-        #          'pred_cam':pred_cam, 'kp_3d':kp_3d}
 
     def forward(self, f_img, pose_2d, is_train=False, J_regressor=None):
         # Prepare
@@ -73,25 +74,12 @@ class Model(nn.Module):
 
         # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
-        smpl_output_global, mask_ids, mem, pred_global = self.mask_transformer(img_feat, is_train=is_train, J_regressor=J_regressor)
+        pose_feat = self.proj_joint(lift3d_pos.flatten(-2) / 1000)
+        feat = torch.cat([img_feat, pose_feat], dim=-1)
+        feat = self.fusing(feat)
+
+        smpl_output_global, mask_ids, mem, pred_global = self.mask_transformer(feat, is_train=is_train, J_regressor=J_regressor)
         smpl_output_global = self.return_output(smpl_output_global, is_train)
 
-        # Fusing
-        sample_start, sample_end = T//2-self.stride//2, T//2+(self.stride//2+1)
-
-        img_feat = self.proj_img_local(f_img[:, sample_start:sample_end])
-        pose_feat = self.proj_joint(lift3d_pos.flatten(-2)[:, sample_start:sample_end] / 1000) # [B, stride, 512]
-        feat = self.fusing(img_feat, pose_feat)                                         # [B, stride, 256]
-        feat = self.hierical_transformer(feat)
-        feat = feat[:, self.stride//2-1:self.stride//2+2]
-
-        if is_train :
-            feat = feat
-        else :
-            feat = feat[:, 1:2]     # [B, 1, 256]
-
-        smpl_output = self.r_regrossor(feat, pred_global[0], pred_global[1], pred_global[2], n_iter=3, is_train=is_train, J_regressor=J_regressor)
-        smpl_output = self.return_output(smpl_output, is_train)
-
-        return lift3d_pos, smpl_output_global, smpl_output, mask_ids
+        return lift3d_pos, smpl_output_global, mask_ids
     

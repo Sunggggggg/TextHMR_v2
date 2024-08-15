@@ -178,37 +178,35 @@ class Trainer:
             """
             input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
             gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
-            gt_mesh, gt_pose, gt_shape, gt_trans = \
-                  targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
+            gt_mesh, gt_pose, gt_shape, gt_trans = targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
             val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans =\
                   meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
             
             # Pre-processing
-            input_pose, gt_lift3dpose, val_lift3dpose = COCO2H36M(input_pose[..., :2]), COCO2H36M(gt_lift3dpose), COCO2H36M(val_lift3dpose)
+            input_pose, gt_lift3dpose = COCO2H36M(input_pose[..., :2]), COCO2H36M(gt_lift3dpose)
             
-            lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
+            lift3d_pos, pred_global, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
+            # Global
             pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0] * 1000)   # m2mm 
-            pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0] * 1000)               
-
-            # Keypoint
-            loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2)) + \
-                self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose, short=True)
-
-            # Lifting
-            loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose)
+            loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2))
+            loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose[:, :, :17])
             
             # SMPL
-            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))+\
-                self.loss['L1'](pred[0], gt_mesh, val_mesh, short=True)
-            loss_pose = self.pose_weight * self.loss['L1'](pred_global[1], gt_pose, val_pose, mask_ids)+\
-                self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose, short=True)
-            loss_shape = self.shape_weight * self.loss['L1'](pred_global[2], gt_shape, val_shape, mask_ids)+\
-                self.shape_weight * self.loss['L1'](pred[2], gt_shape, val_shape, short=True)
-            loss_trans = self.trans_weight * self.loss['L1'](pred_global[3], gt_trans, val_trans, mask_ids)+\
-                self.trans_weight * self.loss['L1'](pred[3], gt_trans, val_trans, short=True)
+            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))
+            loss_pose = self.pose_weight * self.loss['L1'](pred_global[1], gt_pose, val_pose, mask_ids)
+            loss_shape = self.shape_weight * self.loss['L1'](pred_global[2], gt_shape, val_shape, mask_ids)
+                
+            # loss_trans = self.trans_weight * self.loss['L1'](pred_global[3], gt_trans, val_trans, mask_ids)+\
+            #     self.trans_weight * self.loss['L1'](pred[3], gt_trans, val_trans, short=True)
             
-            loss = loss_kp3d + loss_lift3d + loss_mesh + loss_pose + loss_shape + loss_trans
+            # pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0] * 1000) 
+            # loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose, short=True)
+            # loss_mesh = self.loss['L1'](pred[0], gt_mesh, val_mesh, short=True)
+            # self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose, short=True)
+            # self.shape_weight * self.loss['L1'](pred[2], gt_shape, val_shape, short=True)
+
+            loss = loss_kp3d + loss_lift3d + loss_mesh + loss_pose + loss_shape
 
             # update weights
             self.optimizer.zero_grad()
@@ -270,7 +268,7 @@ class Tester:
                 gt_mesh = targets['mesh'].cuda()            # m
                 input_pose = COCO2H36M(input_pose)
 
-                lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=False, J_regressor=self.J_regressor)
+                lift3d_pos, pred, mask_ids = self.model(input_feat, input_pose, is_train=False, J_regressor=self.J_regressor)
                 pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000 # m2mm
 
                 pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh)  # mm

@@ -154,11 +154,11 @@ class GMM(nn.Module):
 
         self.regressor = Regressor()
         self.initialize_weights()
-        if pretrained and os.path.isfile(pretrained):
-            pretrained_dict = torch.load(pretrained)['model']
+        # if pretrained and os.path.isfile(pretrained):
+        #     pretrained_dict = torch.load(pretrained)['model']
 
-            self.regressor.load_state_dict(pretrained_dict, strict=False)
-            print(f'=> loaded pretrained model from \'{pretrained}\'')
+        #     self.regressor.load_state_dict(pretrained_dict, strict=False)
+        #     print(f'=> loaded pretrained model from \'{pretrained}\'')
 
     def forward(self, input, is_train=False, J_regressor=None):
         batch_size, seqlen = input.shape[:2]
