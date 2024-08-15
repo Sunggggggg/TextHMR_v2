@@ -87,3 +87,4 @@ class Model(nn.Module):
         smpl_output = self.return_output(smpl_output)
 
         return lift3d_pos, smpl_output_global, smpl_output, mask_ids
+    

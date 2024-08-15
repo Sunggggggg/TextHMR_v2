@@ -10,7 +10,7 @@ class ConCatModule(nn.Module):
 		super(ConCatModule, self).__init__()
 
 	def forward(self, x):
-		x = torch.cat(x, dim=1)
+		x = torch.cat(x, dim=-1)
 		return x
 	
 class TIRG(nn.Module):
@@ -23,7 +23,7 @@ class TIRG(nn.Module):
 	An Empirical Odyssey" CVPR 2019. arXiv:1812.07119
 	"""
 
-	def __init__(self, input_dim=[512, 512], output_dim=512, out_l2_normalize=False):
+	def __init__(self, input_dim=[256, 256], output_dim=256, out_l2_normalize=False):
 		super(TIRG, self).__init__()
 
 		self.input_dim = sum(input_dim)
@@ -32,10 +32,10 @@ class TIRG(nn.Module):
 		# --- modules
 		self.a = nn.Parameter(torch.tensor([1.0, 1.0])) # changed the second coeff from 10.0 to 1.0
 		self.gated_feature_composer = nn.Sequential(
-				ConCatModule(), nn.BatchNorm1d(self.input_dim), nn.ReLU(),
+				ConCatModule(), nn.LayerNorm(self.input_dim), nn.ReLU(),
 				nn.Linear(self.input_dim, self.output_dim))
 		self.res_info_composer = nn.Sequential(
-				ConCatModule(), nn.BatchNorm1d(self.input_dim), nn.ReLU(),
+				ConCatModule(), nn.LayerNorm(self.input_dim), nn.ReLU(),
 				nn.Linear(self.input_dim, self.input_dim), nn.ReLU(),
 				nn.Linear(self.input_dim, self.output_dim))
 
