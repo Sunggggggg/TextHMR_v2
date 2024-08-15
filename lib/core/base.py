@@ -158,21 +158,39 @@ class Trainer:
         running_loss = 0.0
         batch_generator = tqdm(self.batch_generator)
         for i, (inputs, targets, meta) in enumerate(batch_generator):
+            """
+            Input
+            input_pose(H36M/m) : [B, T, 17, 2]
+            input_feat : [B, T, 2048]
+
+            Target
+            gt_lift3dpose(H36M/m)   : [B, T, 17, 3]
+            gt_reg3dpose(H36M/m)    : [B, T, 17, 3]
+            gt_mesh(m), gt_pose, gt_shape, gt_trans : [B, T, 6890, 3], [B, T, 85]
+
+            val_reg3dpose : [B, T, 19, 2]
+
+            Output
+            lift3d_pos(H36M/m)          : [B, T, 17, 3]
+            pred_kp3d(H36M/m)           : [B, T, 17, 3]
+            pred_mesh(m)                : [B, T, 6890, 3]
+            mask_ids                    : [B, T, 1]
+            """
             input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
             gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
-            input_pose, gt_lift3dpose = COCO2H36M(input_pose), COCO2H36M(gt_lift3dpose)
-
             gt_mesh, gt_pose, gt_shape, gt_trans = \
                   targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
             val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans =\
                   meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
-
-            # keypoint  : pred_kp3d(49x3), pred_kp2d(49x3), pred_lift3d(19x3)
-            # SMPL      : pred_mesh(6890x3), pred_pose(24x3), pred_shape(10)
+            
+            # Pre-processing
+            input_pose, gt_lift3dpose, val_lift3dpose = COCO2H36M(input_pose), COCO2H36M(gt_lift3dpose), COCO2H36M(val_lift3dpose)
+            
             lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
-            pred_kp3d_global = torch.matmul(self.J_regressor[None, :, :], pred_global[0] * 1000)    # mm2m
-            pred_kp3d = torch.matmul(self.J_regressor[None, :, :], pred[0] * 1000)                  # mm2m
+            pred_kp3d_global = torch.matmul(self.J_regressor[None, :, :], pred_global[0]) 
+            pred_kp3d = torch.matmul(self.J_regressor[None, :, :], pred[0])               
+
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids) + \
                 self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose)
 

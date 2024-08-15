@@ -69,8 +69,8 @@ class Model(nn.Module):
         B, T = f_img.shape[:2]
         
         # Lifting feat
-        lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] # mm
-        lift3d_pos = lift3d_pos / 1000                # m
+        lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] 
+        lift3d_pos = lift3d_pos / 1000                # mm2m
 
         # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
