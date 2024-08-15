@@ -271,7 +271,7 @@ class Tester:
                 input_pose = COCO2H36M(input_pose)
 
                 lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
-                pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000
+                pred_mesh, gt_mesh = pred[0], gt_mesh
 
                 pred_pose = torch.matmul(self.J_regressor[None,None, :, :], pred_mesh)
 

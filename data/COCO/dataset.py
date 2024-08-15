@@ -259,7 +259,6 @@ class MSCOCO(torch.utils.data.Dataset):
 
         # root relative camera coordinate
         mesh_cam = mesh_cam - joint_cam_h36m[:1]
-        joint_cam_smpl = joint_cam_smpl - joint_cam_h36m[:1]
         root_coord = joint_cam_h36m[:1].copy()
         joint_cam_coco = joint_cam_coco - root_coord
         joint_cam_h36m = joint_cam_h36m - joint_cam_h36m[:1]
@@ -293,7 +292,6 @@ class MSCOCO(torch.utils.data.Dataset):
         trans = smpl_param['trans'].reshape(1, len(smpl_param['trans'])).repeat(self.seqlen, axis=0)
 
         mesh_valid = np.zeros((1, len(mesh_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        kp_valid = np.zeros((1, len(joint_cam_smpl), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
         reg_joint_valid = np.zeros((1, len(joint_cam_h36m), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
         lift_joint_valid = np.zeros((1, len(joint_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
         pose_valid = np.zeros((1, len(pose), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
@@ -301,7 +299,6 @@ class MSCOCO(torch.utils.data.Dataset):
         trans_valid = np.zeros((1, len(trans), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
 
         mesh_valid[self.seqlen//2] = 1.
-        kp_valid[self.seqlen//2] = 1.
         reg_joint_valid[self.seqlen//2] = 1.
         lift_joint_valid[self.seqlen//2] = 1.
         pose_valid[self.seqlen//2] = 1.
@@ -313,8 +310,8 @@ class MSCOCO(torch.utils.data.Dataset):
             mesh_valid[self.seqlen//2], reg_joint_valid[self.seqlen//2], lift_joint_valid[self.seqlen//2] = 0, 0, 0
         
         inputs = {'pose2d': joint_img, 'img_feature': img_feat}
-        targets = {'mesh': mesh_cam / 1000, 'pose': pose, 'shape': shape, 'trans':trans, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m, 'kp3d_pose':joint_cam_smpl}
-        meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid, 'kp_valid': kp_valid,
+        targets = {'mesh': mesh_cam / 1000, 'pose': pose, 'shape': shape, 'trans':trans, 'lift_pose3d': joint_cam, 'reg_pose3d': joint_cam_h36m}
+        meta = {'mesh_valid': mesh_valid, 'lift_pose3d_valid': lift_joint_valid, 'reg_pose3d_valid': reg_joint_valid,
                 'pose_valid': pose_valid, 'shape_valid': shape_valid, 'trans_valid': trans_valid}
 
         return inputs, targets, meta

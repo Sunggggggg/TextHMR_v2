@@ -211,8 +211,8 @@ class PW3D(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         start_index, end_index = self.vid_indices[idx]
         joint_imgs, img_features = [], []
-        poses, shapes, transs, meshes, kp3d_poses, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], [], [], []
-        pose_valids, shape_valids, trans_valids, mesh_valids, kp_valids, reg_joint_valids, lift_joint_valids = [], [], [], [], [], [], []
+        poses, shapes, transs, meshes, lift_pose3d_poses, reg_pose3d_poses = [], [], [], [], [], []
+        pose_valids, shape_valids, trans_valids, mesh_valids, reg_joint_valids, lift_joint_valids = [], [], [], [], [], []
         for num in range(self.seqlen):
             if start_index == end_index:
                 single_idx = start_index
@@ -247,11 +247,9 @@ class PW3D(torch.utils.data.Dataset):
             transs.append(trans_param.reshape(1, len(trans_param)))
             
             mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender)
-            joint_cam_smpl = joint_cam_smpl - root_coor
             mesh_cam = mesh_cam - root_coor
 
             mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
-            kp_valid = np.ones((1, len(joint_cam_smpl), 1), dtype=np.float32)
             reg_joint_valid = np.ones((1, len(joint_cam_h36m), 1), dtype=np.float32)
             lift_joint_valid = np.ones((1, len(joint_cam_coco), 1), dtype=np.float32)
             pose_valid = np.ones((1, len(pose_param), 1), dtype=np.float32)
@@ -260,7 +258,6 @@ class PW3D(torch.utils.data.Dataset):
 
             # SMPL
             meshes.append((mesh_cam / 1000).reshape(1, len(mesh_cam), 3))                   # meter
-            kp3d_poses.append((joint_cam_smpl / 1000).reshape(1, len(joint_cam_smpl), 3))    # meter
             # Joint
             lift_pose3d_poses.append(joint_cam_coco.reshape(1, len(joint_cam_coco), 3))
             reg_pose3d_poses.append(joint_cam_h36m.reshape(1, len(joint_cam_h36m), 3))
@@ -268,7 +265,6 @@ class PW3D(torch.utils.data.Dataset):
             mesh_valids.append(mesh_valid)
             reg_joint_valids.append(reg_joint_valid)
             lift_joint_valids.append(lift_joint_valid)
-            kp_valids.append(kp_valid)
             pose_valids.append(pose_valid)
             shape_valids.append(shape_valid)
             trans_valids.append(trans_valid)
@@ -284,20 +280,18 @@ class PW3D(torch.utils.data.Dataset):
         transs = np.concatenate(transs)
         lift_pose3d_poses = np.concatenate(lift_pose3d_poses)
         reg_pose3d_poses = np.concatenate(reg_pose3d_poses)
-        kp3d_poses = np.concatenate(kp3d_poses)
 
         # Meta
         mesh_valids = np.concatenate(mesh_valids)
         reg_joint_valids = np.concatenate(reg_joint_valids)
         lift_joint_valids = np.concatenate(lift_joint_valids)
-        kp_valids = np.concatenate(kp_valids)
         pose_valids = np.concatenate(pose_valids)
         shape_valids = np.concatenate(shape_valids)
         trans_valids = np.concatenate(trans_valids)
 
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
-        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'trans':transs, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses, 'kp3d_pose': kp3d_poses}
-        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': lift_joint_valids, 'reg_pose3d_valid': reg_joint_valids, 'kp_valid': kp_valids,
+        targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'trans':transs, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
+        meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': lift_joint_valids, 'reg_pose3d_valid': reg_joint_valids,
                 'pose_valid': pose_valids, 'shape_valid': shape_valids, 'trans_valid': trans_valids}
         return inputs, targets, meta
 
