@@ -1,5 +1,6 @@
 DATASET:
     #train_list: ['Human36M', 'PW3D', 'MPII3D', 'COCO', 'MPII']
+    seqlen: 64
     train_list: ['Human36M', 'PW3D', 'MPII3D']
     test_list: ['PW3D']
     input_joint_set: 'coco'
