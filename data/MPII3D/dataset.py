@@ -432,7 +432,7 @@ class MPII3D(torch.utils.data.Dataset):
             shapes.append(shape_param.reshape(1, len(shape_param)))
             transs.append(trans_param.reshape(1, len(trans_param)))
             
-            mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender)
+            mesh_cam, joint_cam_smpl = self.get_smpl_coord(pose_param, shape_param, trans_param, gender, cam_param_R, cam_param_t)
             mesh_cam = mesh_cam - root_coor
 
             mesh_valid = np.ones((1, len(mesh_cam), 1), dtype=np.float32)
