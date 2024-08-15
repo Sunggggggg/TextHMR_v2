@@ -190,7 +190,7 @@ class Trainer:
             # Global
             pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0] * 1000)   # m2mm 
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2))
-            loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose[:, :, :17])
+            #loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose[:, :, :17])
             
             # SMPL
             loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))
@@ -206,7 +206,7 @@ class Trainer:
             # self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose, short=True)
             # self.shape_weight * self.loss['L1'](pred[2], gt_shape, val_shape, short=True)
 
-            loss = loss_kp3d + loss_lift3d + loss_mesh + loss_pose + loss_shape
+            loss = loss_kp3d + loss_mesh + loss_pose + loss_shape
 
             # update weights
             self.optimizer.zero_grad()
@@ -219,14 +219,14 @@ class Trainer:
             if i % self.print_freq == 0:
                 loss_total = loss.detach()
                 loss_kp3d = loss_kp3d.detach()
-                loss_lift3d = loss_lift3d.detach()
+                #loss_lift3d = loss_lift3d.detach()
                 loss_mesh = loss_pose.detach()
 
                 batch_generator.set_description(f'Epoch{epoch}-({i}/{len(batch_generator)}) => '
                                                 f'vertice loss: {loss_total:.4f} '
                                                 f'vertice loss: {loss_mesh:.4f} '
-                                                f'mesh->3d joint loss: {loss_kp3d:.4f} '
-                                                f'lift joint loss: {loss_lift3d:.4f} ')
+                                                f'mesh->3d joint loss: {loss_kp3d:.4f} ')
+                                                #f'lift joint loss: {loss_lift3d:.4f} ')
 
         self.loss_history.append(running_loss / len(batch_generator))
 
