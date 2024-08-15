@@ -54,6 +54,11 @@ class Model(nn.Module):
             pred_pose = theta[..., 3:75].reshape(B, 72)
             pred_shape = theta[..., 75:].reshape(B, 10)
             pred_verts = smpl_output['verts'].reshape(B, 6890, 3)
+        else :
+            pred_cam = theta[..., :3].reshape(B, -1, 3)
+            pred_pose = theta[..., 3:75].reshape(B, -1, 72)
+            pred_shape = theta[..., 75:].reshape(B, -1, 10)
+            pred_verts = smpl_output['verts'].reshape(B, -1, 6890, 3)
 
         return pred_verts, pred_pose, pred_shape, pred_cam
         # return {'pred_verts':pred_verts, 'pred_pose':pred_pose, 'pred_shape':pred_shape,
