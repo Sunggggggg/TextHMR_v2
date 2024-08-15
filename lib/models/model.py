@@ -46,11 +46,6 @@ class Model(nn.Module):
             h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
         self.r_regrossor = R_Regressor(embed_dim//2)
 
-    def padding(self, pose2d):
-        padding = torch.zeros_like(pose2d, device=pose2d.device)[..., 0:1]
-        pose2d = torch.cat([pose2d, padding], dim=-1)
-        return pose2d
-
     def return_output(self, smpl_output):
         theta = smpl_output['theta']
         pred_cam, pred_pose, pred_shape = theta[..., :3], theta[..., 3:75], theta[..., 75:]
@@ -64,7 +59,6 @@ class Model(nn.Module):
     def forward(self, f_img, pose_2d, is_train=False, J_regressor=None):
         # Prepare
         B, T = f_img.shape[:2]
-        pose_2d = self.padding(pose_2d)
         
         # Lifting feat
         lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] # mm
