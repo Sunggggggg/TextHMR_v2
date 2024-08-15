@@ -92,7 +92,7 @@ def get_optimizer(model):
     elif cfg.TRAIN.optimizer == 'adam':
         optimizer = optim.Adam(
             model.parameters(),
-            lr=cfg.TRAIN.lr
+            lr=float(cfg.TRAIN.lr)
         )
 
     return optimizer
