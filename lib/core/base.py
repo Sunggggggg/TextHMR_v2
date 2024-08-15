@@ -188,7 +188,7 @@ class Trainer:
             lift3d_pos, pred_global, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
             # Global
-            pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0] * 1000)   # m2mm 
+            pred_kp3d_global = torch.matmul(self.J_regressor[None, None, :, :], pred_global[0] * 1000)   # m2mm 
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2))
             #loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose[:, :, :17])
             

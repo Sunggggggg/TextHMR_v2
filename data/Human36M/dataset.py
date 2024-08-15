@@ -8,6 +8,7 @@ import transforms3d
 import scipy.sparse
 import cv2
 from pycocotools.coco import COCO
+import copy
 
 from core.config import cfg 
 from noise_utils import synthesize_pose
@@ -488,7 +489,7 @@ class Human36M(torch.utils.data.Dataset):
             if flip:
                 joint_img = flip_2d_joint(joint_img, img_shape[1], self.flip_pairs)
             joint_img = joint_img[:,:2]
-            joint_img = self.normalize_screen_coordinates(joint_img, w=img_shape[1], h=img_shape[0])
+            #joint_img = self.normalize_screen_coordinates(joint_img, w=img_shape[1], h=img_shape[0])
             joint_img = np.array(joint_img, dtype=np.float32)
             joint_cam = j3d_processing(joint_cam, rot, flip, self.flip_pairs)
 
@@ -552,6 +553,9 @@ class Human36M(torch.utils.data.Dataset):
         shape_valids = np.concatenate(shape_valids)
         trans_valids = np.concatenate(trans_valids)
 
+        # Norm
+        joint_imgs = self.crop_scale(joint_imgs)
+
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
         targets = {'mesh': meshes, 'pose': poses, 'shape': shapes,'trans':transs, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
         meta = {'mesh_valid': mesh_valids, 'lift_pose3d_valid': lift_joint_valids, 'reg_pose3d_valid': reg_joint_valids,
@@ -561,6 +565,27 @@ class Human36M(torch.utils.data.Dataset):
     def normalize_screen_coordinates(self, X, w, h):
         assert X.shape[-1] == 2
         return X / w * 2 - [1, h / w]
+    
+    def crop_scale(self, motion, scale_range=[1, 1]):
+        '''
+            Motion: [(M), T, 17, 2].
+            Normalize to [-1, 1]
+        '''
+        result = copy.deepcopy(motion)
+        xmin = np.min(motion[...,0])
+        xmax = np.max(motion[...,0])
+        ymin = np.min(motion[...,1])
+        ymax = np.max(motion[...,1])
+        ratio = np.random.uniform(low=scale_range[0], high=scale_range[1], size=1)[0]
+        scale = max(xmax-xmin, ymax-ymin) / ratio
+        if scale==0:
+            return np.zeros(motion.shape)
+        xs = (xmin+xmax-scale) / 2
+        ys = (ymin+ymax-scale) / 2
+        result[...,:2] = (motion[..., :2]- [xs,ys]) / scale
+        result = (result - 0.5) * 2
+        result = np.clip(result, -1, 1)
+        return result
 
     def replace_joint_img_wo_bbox(self, idx, img_id, joint_img, img_name, bbox, w, h):
         if self.input_joint_name == 'coco':

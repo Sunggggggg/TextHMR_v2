@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import json
 from pycocotools.coco import COCO
+import copy
 
 from core.config import cfg
 from funcs_utils import save_obj
@@ -205,6 +206,27 @@ class PW3D(torch.utils.data.Dataset):
         assert X.shape[-1] == 2
         return X / w * 2 - [1, h / w]
 
+    def crop_scale(self, motion, scale_range=[1, 1]):
+        '''
+            Motion: [(M), T, 17, 2].
+            Normalize to [-1, 1]
+        '''
+        result = copy.deepcopy(motion)
+        xmin = np.min(motion[...,0])
+        xmax = np.max(motion[...,0])
+        ymin = np.min(motion[...,1])
+        ymax = np.max(motion[...,1])
+        ratio = np.random.uniform(low=scale_range[0], high=scale_range[1], size=1)[0]
+        scale = max(xmax-xmin, ymax-ymin) / ratio
+        if scale==0:
+            return np.zeros(motion.shape)
+        xs = (xmin+xmax-scale) / 2
+        ys = (ymin+ymax-scale) / 2
+        result[...,:2] = (motion[..., :2]- [xs,ys]) / scale
+        result = (result - 0.5) * 2
+        result = np.clip(result, -1, 1)
+        return result
+
     def __len__(self):
         return len(self.vid_indices)
 
@@ -235,7 +257,7 @@ class PW3D(torch.utils.data.Dataset):
             img_feature = self.features[single_idx].copy()
 
             joint_img_coco = joint_img_coco[:, :2]
-            joint_img_coco = self.normalize_screen_coordinates(joint_img_coco, w=img_shape[1], h=img_shape[0])
+            #joint_img_coco = self.normalize_screen_coordinates(joint_img_coco, w=img_shape[1], h=img_shape[0])
             joint_img_coco = np.array(joint_img_coco, dtype=np.float32)
 
             joint_imgs.append(joint_img_coco.reshape(1, len(joint_img_coco), 2))
@@ -288,6 +310,9 @@ class PW3D(torch.utils.data.Dataset):
         pose_valids = np.concatenate(pose_valids)
         shape_valids = np.concatenate(shape_valids)
         trans_valids = np.concatenate(trans_valids)
+
+        # Norm
+        joint_imgs = self.crop_scale(joint_imgs)
 
         inputs = {'pose2d': joint_imgs, 'img_feature': img_features}
         targets = {'mesh': meshes, 'pose': poses, 'shape': shapes, 'trans':transs, 'lift_pose3d': lift_pose3d_poses, 'reg_pose3d': reg_pose3d_poses}
