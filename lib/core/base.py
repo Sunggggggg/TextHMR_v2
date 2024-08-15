@@ -24,7 +24,7 @@ def COCO2H36M(coco_joint):
         'L_Shoulder':11, 'L_Elbow':12, 'L_Wrist':13, 'R_Shoulder':14, 'R_Elbow':15, 'R_Wrist':16]
     """
     B, T = coco_joint.shape[:2]
-    h36m_joint = torch.zeros((B, T, 16, 2), dtype=coco_joint.dtype, device=coco_joint.device)
+    h36m_joint = torch.zeros((B, T, 17, 2), dtype=coco_joint.dtype, device=coco_joint.device)
     
     h36m_joint[..., 0, :] = coco_joint[..., 17, :]
     h36m_joint[..., 1, :] = coco_joint[..., 12, :]
