@@ -22,7 +22,7 @@ def COCO2H36M(coco_joint):
     h36m : ['Pelvis':0, 'R_Hip':1, 'R_Knee':2, 'R_Ankle':3, 'L_Hip':4, 'L_Knee':5, 'L_Ankle':6, 'Torso':7, 'Neck':8, 'Nose':9, 'Head':10,
         'L_Shoulder':11, 'L_Elbow':12, 'L_Wrist':13, 'R_Shoulder':14, 'R_Elbow':15, 'R_Wrist':16]
     """
-    T, J = coco_joint[:2]
+    T, J = coco_joint.shape[:2]
     h36m_joint = torch.zeros((T, 16, 2), device=coco_joint.device)
     
     h36m_joint[..., 0] = coco_joint[..., 17]
@@ -160,7 +160,7 @@ class Trainer:
             input_pose, input_feat = inputs['pose2d'], inputs['img_feature'].cuda()
             gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'], targets['reg_pose3d'].cuda()
             input_pose, gt_lift3dpose = COCO2H36M(input_pose).cuda(), COCO2H36M(gt_lift3dpose).cuda()
-            
+
             gt_mesh, gt_pose, gt_shape, gt_trans = \
                   targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
             val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans =\
