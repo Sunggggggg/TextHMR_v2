@@ -26,23 +26,23 @@ def COCO2H36M(coco_joint):
     B, T = coco_joint.shape[:2]
     h36m_joint = torch.zeros((B, T, 17, 2), dtype=coco_joint.dtype, device=coco_joint.device)
     
-    h36m_joint[..., 0, :] = coco_joint[..., 17, :]
-    h36m_joint[..., 1, :] = coco_joint[..., 12, :]
-    h36m_joint[..., 2, :] = coco_joint[..., 14, :]
-    h36m_joint[..., 3, :] = coco_joint[..., 16, :]
-    h36m_joint[..., 4, :] = coco_joint[..., 11, :]
-    h36m_joint[..., 5, :] = coco_joint[..., 13, :]
-    h36m_joint[..., 6, :] = coco_joint[..., 15, :]
-    h36m_joint[..., 7, :] = (coco_joint[..., 17, :] + coco_joint[..., 18, :])/2
-    h36m_joint[..., 8, :] = coco_joint[..., 18, :]
-    h36m_joint[..., 9, :] = coco_joint[..., 0, :]
-    h36m_joint[..., 10, :] = (coco_joint[..., 1, :] + coco_joint[..., 2, :])/2
-    h36m_joint[..., 11, :] = coco_joint[..., 5, :]
-    h36m_joint[..., 12, :] = coco_joint[..., 7, :]
-    h36m_joint[..., 13, :] = coco_joint[..., 9, :]
-    h36m_joint[..., 14, :] = coco_joint[..., 6, :]
-    h36m_joint[..., 15, :] = coco_joint[..., 8, :]
-    h36m_joint[..., 16, :] = coco_joint[..., 10, :]
+    h36m_joint[..., 0, :] = coco_joint[..., 17, :2]
+    h36m_joint[..., 1, :] = coco_joint[..., 12, :2]
+    h36m_joint[..., 2, :] = coco_joint[..., 14, :2]
+    h36m_joint[..., 3, :] = coco_joint[..., 16, :2]
+    h36m_joint[..., 4, :] = coco_joint[..., 11, :2]
+    h36m_joint[..., 5, :] = coco_joint[..., 13, :2]
+    h36m_joint[..., 6, :] = coco_joint[..., 15, :2]
+    h36m_joint[..., 7, :] = (coco_joint[..., 17, :2] + coco_joint[..., 18, :2])/2
+    h36m_joint[..., 8, :] = coco_joint[..., 18, :2]
+    h36m_joint[..., 9, :] = coco_joint[..., 0, :2]
+    h36m_joint[..., 10, :] = (coco_joint[..., 1, :2] + coco_joint[..., 2, :2])/2
+    h36m_joint[..., 11, :] = coco_joint[..., 5, :2]
+    h36m_joint[..., 12, :] = coco_joint[..., 7, :2]
+    h36m_joint[..., 13, :] = coco_joint[..., 9, :2]
+    h36m_joint[..., 14, :] = coco_joint[..., 6, :2]
+    h36m_joint[..., 15, :] = coco_joint[..., 8, :2]
+    h36m_joint[..., 16, :] = coco_joint[..., 10, :2]
 
     return h36m_joint
 
