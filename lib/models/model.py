@@ -40,7 +40,7 @@ class Model(nn.Module):
         self.proj_joint = nn.Linear(num_joint*3, embed_dim//2)
         self.proj_img_local = nn.Linear(2048, embed_dim//2)
         self.fusing = TIRG(input_dim=[embed_dim//2, embed_dim//2], output_dim=embed_dim//2)
-        self.mask_transformer = GMM(seqlen, n_layers=n_layers, d_output=2048, d_model=2048,
+        self.mask_transformer = GMM(seqlen, n_layers=n_layers, d_output=2048, d_model=embed_dim,
                                     num_head=8,  dropout=dropout,  drop_path_r=drop_path_r, atten_drop=atten_drop, mask_ratio=0.5)
         self.hierical_transformer = Transformer(depth=3, embed_dim=embed_dim//2, mlp_ratio=4.,
             h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
