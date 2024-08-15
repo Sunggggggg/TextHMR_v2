@@ -165,7 +165,7 @@ class Trainer:
 
             Target
             gt_lift3dpose(H36M/m)   : [B, T, 17, 3]
-            gt_reg3dpose(H36M/m)    : [B, T, 17, 3]
+            gt_reg3dpose(H36M/mm)    : [B, T, 17, 3]
             gt_mesh(m), gt_pose, gt_shape, gt_trans : [B, T, 6890, 3], [B, T, 85]
 
             val_reg3dpose : [B, T, 19, 2]
@@ -271,9 +271,9 @@ class Tester:
                 input_pose = COCO2H36M(input_pose)
 
                 lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
-                pred_mesh, gt_mesh = pred[0], gt_mesh
+                pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000 # m2mm
 
-                pred_pose = torch.matmul(self.J_regressor[None,None, :, :], pred_mesh)
+                pred_pose = torch.matmul(self.J_regressor[None,None, :, :], pred_mesh)  # mm
 
                 j_error, s_error = self.val_dataset.compute_both_err(pred_mesh, gt_mesh, pred_pose, gt_reg3dpose)
                 

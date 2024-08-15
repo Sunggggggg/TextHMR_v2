@@ -272,12 +272,12 @@ class MPII(torch.utils.data.Dataset):
         shape = smpl_param['shape'].reshape(1, len(smpl_param['shape'])).repeat(self.seqlen, axis=0)
         trans = smpl_param['trans'].reshape(1, len(smpl_param['trans'])).repeat(self.seqlen, axis=0)
         
-        mesh_valid = np.zeros((1, len(mesh_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        reg_joint_valid = np.zeros((1, len(joint_cam_h36m), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        lift_joint_valid = np.zeros((1, len(joint_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        pose_valid = np.zeros((1, len(pose), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        shape_valid = np.zeros((1, len(shape), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        trans_valid = np.zeros((1, len(trans), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        mesh_valid = np.zeros((1, len(mesh_cam[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        reg_joint_valid = np.zeros((1, len(joint_cam_h36m[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        lift_joint_valid = np.zeros((1, len(joint_cam[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        pose_valid = np.zeros((1, len(pose[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        shape_valid = np.zeros((1, len(shape[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        trans_valid = np.zeros((1, len(trans[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
 
         mesh_valid[self.seqlen//2] = 1.
         reg_joint_valid[self.seqlen//2] = 1.

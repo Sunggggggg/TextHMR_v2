@@ -283,20 +283,20 @@ class MSCOCO(torch.utils.data.Dataset):
         joint_img = joint_img.reshape(1, len(joint_img), 2).repeat(self.seqlen, axis=0)
         img_feat = img_feat.reshape(1, 2048).repeat(self.seqlen, axis=0)
 
-        mesh_cam = mesh_cam.reshape(1, len(mesh_cam), 3).repeat(self.seqlen, axis=0)
-        joint_cam = joint_cam.reshape(1, len(joint_cam), 3).repeat(self.seqlen, axis=0)
+        mesh_cam = mesh_cam.reshape(1, len(mesh_cam), 3).repeat(self.seqlen, axis=0)        # [T, 6890, 3]
+        joint_cam = joint_cam.reshape(1, len(joint_cam), 3).repeat(self.seqlen, axis=0)     # [T, 19, 3]
         joint_cam_h36m = joint_cam_h36m.reshape(1, len(joint_cam_h36m), 3).repeat(self.seqlen, axis=0)
 
         pose = smpl_param['pose'].reshape(1, len(smpl_param['pose'])).repeat(self.seqlen, axis=0)
         shape = smpl_param['shape'].reshape(1, len(smpl_param['shape'])).repeat(self.seqlen, axis=0)
         trans = smpl_param['trans'].reshape(1, len(smpl_param['trans'])).repeat(self.seqlen, axis=0)
 
-        mesh_valid = np.zeros((1, len(mesh_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        reg_joint_valid = np.zeros((1, len(joint_cam_h36m), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        lift_joint_valid = np.zeros((1, len(joint_cam), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        pose_valid = np.zeros((1, len(pose), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        shape_valid = np.zeros((1, len(shape), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
-        trans_valid = np.zeros((1, len(trans), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        mesh_valid = np.zeros((1, len(mesh_cam[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        reg_joint_valid = np.zeros((1, len(joint_cam_h36m[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        lift_joint_valid = np.zeros((1, len(joint_cam[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        pose_valid = np.zeros((1, len(pose[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        shape_valid = np.zeros((1, len(shape[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
+        trans_valid = np.zeros((1, len(trans[0]), 1), dtype=np.float32).repeat(self.seqlen, axis=0)
 
         mesh_valid[self.seqlen//2] = 1.
         reg_joint_valid[self.seqlen//2] = 1.
