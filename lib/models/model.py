@@ -46,13 +46,16 @@ class Model(nn.Module):
             h=8, drop_rate=dropout, drop_path_rate=drop_path_r, attn_drop_rate=atten_drop, length=self.stride)
         self.r_regrossor = R_Regressor(embed_dim//2)
 
-    def return_output(self, smpl_output):
+    def return_output(self, smpl_output, is_train):
         theta = smpl_output['theta']
-        pred_cam, pred_pose, pred_shape = theta[..., :3], theta[..., 3:75], theta[..., 75:]
-        pred_verts = smpl_output['verts']
-        kp_3d = smpl_output['kp_3d']
+        B = theta.shape[0]
+        if not is_train :
+            pred_cam = theta[..., :3].reshape(B, 3)
+            pred_pose = theta[..., 3:75].reshape(B, 72)
+            pred_shape = theta[..., 75:].reshape(B, 10)
+            pred_verts = smpl_output['verts'].reshape(B, 6890, 3)
 
-        return pred_verts, pred_pose, pred_shape, pred_cam, kp_3d
+        return pred_verts, pred_pose, pred_shape, pred_cam
         # return {'pred_verts':pred_verts, 'pred_pose':pred_pose, 'pred_shape':pred_shape,
         #          'pred_cam':pred_cam, 'kp_3d':kp_3d}
 
@@ -67,7 +70,7 @@ class Model(nn.Module):
         # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
         smpl_output_global, mask_ids, mem, pred_global = self.mask_transformer(img_feat, is_train=is_train, J_regressor=J_regressor)
-        smpl_output_global = self.return_output(smpl_output_global)
+        smpl_output_global = self.return_output(smpl_output_global, is_train)
 
         # Fusing
         sample_start, sample_end = T//2-self.stride//2, T//2+(self.stride//2+1)
@@ -84,7 +87,7 @@ class Model(nn.Module):
             feat = feat[:, 1:2]     # [B, 1, 256]
 
         smpl_output = self.r_regrossor(feat, pred_global[0], pred_global[1], pred_global[2], n_iter=3, is_train=is_train, J_regressor=J_regressor)
-        smpl_output = self.return_output(smpl_output)
+        smpl_output = self.return_output(smpl_output, is_train)
 
         return lift3d_pos, smpl_output_global, smpl_output, mask_ids
     
