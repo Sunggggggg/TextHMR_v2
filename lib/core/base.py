@@ -219,11 +219,13 @@ class Trainer:
             running_loss += float(loss.detach().item())
 
             if i % self.print_freq == 0:
+                loss_total = loss.detach()
                 loss_kp3d = loss_kp3d.detach()
                 loss_lift3d = loss_lift3d.detach()
                 loss_mesh = loss_pose.detach()
 
-                batch_generator.set_description(f'Epoch{epoch}_({i}/{len(batch_generator)}) => '
+                batch_generator.set_description(f'Epoch{epoch}-({i}/{len(batch_generator)}) => '
+                                                f'vertice loss: {loss_total:.4f} '
                                                 f'vertice loss: {loss_mesh:.4f} '
                                                 f'mesh->3d joint loss: {loss_kp3d:.4f} '
                                                 f'lift joint loss: {loss_lift3d:.4f} ')
