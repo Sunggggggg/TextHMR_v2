@@ -31,9 +31,9 @@ class R_Regressor(nn.Module):
         x = x.reshape(-1, x.size(-1))
         batch_size = x.shape[0]
 
-        pred_pose = init_pose
-        pred_shape = init_shape
-        pred_cam = init_cam
+        pred_pose = init_pose.reshape(batch_size, -1)
+        pred_shape = init_shape.reshape(batch_size, -1)
+        pred_cam = init_cam.reshape(batch_size, -1)
         for i in range(n_iter):
             xc = torch.cat([x, pred_pose, pred_shape, pred_cam], 1)
             xc = self.fc1(xc)
