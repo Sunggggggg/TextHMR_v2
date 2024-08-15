@@ -15,6 +15,36 @@ from core.config import cfg
 from core.loss import get_loss, get_loss_dict
 from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_parameters, lr_check
 
+def COCO2H36M(coco_joint):
+    """
+    coco : ['Nose':0, 'L_Eye':1, 'R_Eye':2, 'L_Ear':3, 'R_Ear':4, 'L_Shoulder':5, 'R_Shoulder':6, 'L_Elbow':7, 'R_Elbow':8, 'L_Wrist':9,
+            'R_Wrist':10, 'L_Hip':11, 'R_Hip':12, 'L_Knee':13, 'R_Knee':14, 'L_Ankle':15, 'R_Ankle':16, 'Pelvis':17, 'Neck':18)]
+    h36m : ['Pelvis':0, 'R_Hip':1, 'R_Knee':2, 'R_Ankle':3, 'L_Hip':4, 'L_Knee':5, 'L_Ankle':6, 'Torso':7, 'Neck':8, 'Nose':9, 'Head':10,
+        'L_Shoulder':11, 'L_Elbow':12, 'L_Wrist':13, 'R_Shoulder':14, 'R_Elbow':15, 'R_Wrist':16]
+    """
+    T, J = coco_joint[:2]
+    h36m_joint = torch.zeros((T, 16, 2), device=coco_joint.device)
+    
+    h36m_joint[..., 0] = coco_joint[..., 17]
+    h36m_joint[..., 1] = coco_joint[..., 12]
+    h36m_joint[..., 2] = coco_joint[..., 14]
+    h36m_joint[..., 3] = coco_joint[..., 16]
+    h36m_joint[..., 4] = coco_joint[..., 11]
+    h36m_joint[..., 5] = coco_joint[..., 13]
+    h36m_joint[..., 6] = coco_joint[..., 15]
+    h36m_joint[..., 7] = (coco_joint[..., 17] + coco_joint[..., 18])/2
+    h36m_joint[..., 8] = coco_joint[..., 18]
+    h36m_joint[..., 9] = coco_joint[..., 0]
+    h36m_joint[..., 10] = (coco_joint[..., 1] + coco_joint[..., 2])/2
+    h36m_joint[..., 11] = coco_joint[..., 5]
+    h36m_joint[..., 12] = coco_joint[..., 7]
+    h36m_joint[..., 13] = coco_joint[..., 9]
+    h36m_joint[..., 14] = coco_joint[..., 6]
+    h36m_joint[..., 15] = coco_joint[..., 8]
+    h36m_joint[..., 16] = coco_joint[..., 10]
+
+    return h36m_joint
+
 def get_dataloader(args, dataset_names, is_train):
     dataset_split = 'TRAIN' if is_train else 'TEST'
     batch_per_dataset = cfg[dataset_split].batch_size // len(dataset_names)
@@ -129,10 +159,13 @@ class Trainer:
         for i, (inputs, targets, meta) in enumerate(batch_generator):
             input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
             gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
-            gt_mesh, gt_pose, gt_shape, gt_trans, gt_kp3d = \
-                  targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda(), targets['kp3d_pose'].cuda()
-            val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans, val_kp =\
-                  meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['kp_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
+            input_pose = COCO2H36M(input_pose)
+            gt_lift3dpose = COCO2H36M(gt_lift3dpose)
+
+            gt_mesh, gt_pose, gt_shape, gt_trans = \
+                  targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
+            val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans =\
+                  meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
 
             # keypoint  : pred_kp3d(49x3), pred_kp2d(49x3), pred_lift3d(19x3)
             # SMPL      : pred_mesh(6890x3), pred_pose(24x3), pred_shape(10)
@@ -208,15 +241,16 @@ class Tester:
         with torch.no_grad():
             for i, (inputs, targets, meta) in enumerate(loader):
                 input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
-                gt_pose3d, gt_mesh = targets['reg_pose3d'].cuda(), targets['mesh'].cuda()
-                gt_lift_pose3d = targets['lift_pose3d'].cuda()
+                gt_reg3dpose = targets['reg_pose3d'].cuda()
+                gt_mesh = targets['mesh'].cuda()
+                input_pose = COCO2H36M(input_pose)
 
-                pred_mesh, evo_pose, pose3d = self.model(input_pose, input_feat)
-                pred_mesh, gt_mesh = pred_mesh * 1000, gt_mesh * 1000
+                lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
+                pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000
 
                 pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh)
 
-                j_error, s_error = self.val_dataset.compute_both_err(pred_mesh, gt_mesh, pred_pose, gt_pose3d)
+                j_error, s_error = self.val_dataset.compute_both_err(pred_mesh, gt_mesh, pred_pose, gt_reg3dpose)
                 
                 if i % self.print_freq == 0:
                     loader.set_description(f'{eval_prefix}({i}/{len(self.val_loader)}) => surface error: {s_error:.4f}, joint error: {j_error:.4f}')
@@ -242,104 +276,3 @@ class Tester:
             # Final Evaluation
             if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
                 self.val_dataset.evaluate(result)
-
-
-class LiftTrainer:
-    def __init__(self, args, load_dir):
-        self.batch_generator, self.dataset_list, self.model, self.loss, self.optimizer, self.lr_scheduler, self.loss_history, self.error_history \
-            = prepare_network(args, load_dir=load_dir, is_train=True)
-
-        self.loss = self.loss[0]
-        self.main_dataset = self.dataset_list[0]
-        self.num_joint = self.main_dataset.joint_num
-        self.print_freq = cfg.TRAIN.print_freq
-
-        self.model = self.model.cuda()
-
-    def train(self, epoch):
-        self.model.train()
-
-        lr_check(self.optimizer, epoch)
-
-        running_loss = 0.0
-        batch_generator = tqdm(self.batch_generator)
-        for i, (img_joint, cam_joint, joint_valid, img_features) in enumerate(batch_generator):
-            img_joint, cam_joint = img_joint.cuda().float(), cam_joint.cuda().float()
-            joint_valid = joint_valid.cuda().float()
-            img_features = img_features.cuda().float()
-
-            pred_joint = self.model(img_joint, img_features)
-            pred_joint = pred_joint.view(-1, self.num_joint, 3)
-
-            loss = self.loss(pred_joint, cam_joint, joint_valid)
-
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-
-            running_loss += float(loss.detach().item())
-
-            if i % self.print_freq == 0:
-                batch_generator.set_description(f'Epoch{epoch}_({i}/{len(self.batch_generator)}) => '
-                                                f'total loss: {loss.detach():.4f} ')
-
-        self.loss_history.append(running_loss / len(self.batch_generator))
-
-        print(f'Epoch{epoch} Loss: {self.loss_history[-1]:.4f}')
-
-
-class LiftTester:
-    def __init__(self, args, load_dir=''):
-        self.val_loader, self.val_dataset, self.model, _, _, _, _, _ = \
-            prepare_network(args, load_dir=load_dir, is_train=False)
-        self.val_dataset = self.val_dataset[0]
-        self.val_loader = self.val_loader[0]
-
-        self.num_joint = self.val_dataset.joint_num
-        self.print_freq = cfg.TRAIN.print_freq
-
-        if self.model:
-            self.model = self.model.cuda()
-
-        # initialize error value
-        self.surface_error = 9999.9
-        self.joint_error = 9999.9
-
-    def test(self, epoch, current_model=None):
-        if current_model:
-            self.model = current_model
-        self.model.eval()
-        
-
-        result = []
-        joint_error = 0.0
-        eval_prefix = f'Epoch{epoch} ' if epoch else ''
-        loader = tqdm(self.val_loader)
-        with torch.no_grad():
-            for i, (img_joint, cam_joint, _, img_features) in enumerate(loader):
-                img_joint, cam_joint = img_joint.cuda().float(), cam_joint.cuda().float()
-                img_features = img_features.cuda().float()
-
-                pred_joint = self.model(img_joint, img_features)
-                pred_joint = pred_joint.view(-1, self.num_joint, 3)
-
-                mpjpe = self.val_dataset.compute_joint_err(pred_joint, cam_joint)
-                joint_error += mpjpe
-
-                if i % self.print_freq == 0:
-                    loader.set_description(f'{eval_prefix}({i}/{len(self.val_loader)}) => joint error: {mpjpe:.4f}')
-
-                # Final Evaluation
-                if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
-                    pred_joint, target_joint = pred_joint.detach().cpu().numpy(), cam_joint.detach().cpu().numpy()
-                    for j in range(len(pred_joint)):
-                        out = {}
-                        out['joint_coord'], out['joint_coord_target'] = pred_joint[j], target_joint[j]
-                        result.append(out)
-
-        self.joint_error = joint_error / len(self.val_loader)
-        print(f'{eval_prefix}MPJPE: {self.joint_error:.4f}')
-
-        # Final Evaluation
-        if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
-            self.val_dataset.evaluate_joint(result)
