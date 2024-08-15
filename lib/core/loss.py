@@ -10,7 +10,12 @@ class CoordLoss(nn.Module):
         self.has_valid = has_valid
         self.criterion = nn.L1Loss(reduction='none')
 
-    def forward(self, pred, target, target_valid, mask_ids=None):
+    def forward(self, pred, target, target_valid, mask_ids=None, short=False):
+        if short :
+            T = target.shape[1]
+            target = target[:, T//2-1:T//2+2]
+            target_valid = target_valid[:, T//2-1:T//2+2]
+        
         if self.has_valid:
             pred, target = pred * target_valid, target * target_valid
         loss = self.criterion(pred, target)
@@ -28,7 +33,11 @@ class MSELoss(nn.Module):
         self.has_valid = has_valid
         self.criterion = nn.MSELoss(reduction='none')
 
-    def forward(self, pred, target, target_valid, mask_ids=None):
+    def forward(self, pred, target, target_valid, mask_ids=None, short=False):
+        if short :
+            T = target.shape[1]
+            target = target[:, T//2-1:T//2+2]
+            target_valid = target_valid[:, T//2-1:T//2+2]
         if self.has_valid:
             pred, target = pred * target_valid, target * target_valid
 
