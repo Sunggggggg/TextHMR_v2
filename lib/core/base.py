@@ -23,26 +23,26 @@ def COCO2H36M(coco_joint):
     h36m : ['Pelvis':0, 'R_Hip':1, 'R_Knee':2, 'R_Ankle':3, 'L_Hip':4, 'L_Knee':5, 'L_Ankle':6, 'Torso':7, 'Neck':8, 'Nose':9, 'Head':10,
         'L_Shoulder':11, 'L_Elbow':12, 'L_Wrist':13, 'R_Shoulder':14, 'R_Elbow':15, 'R_Wrist':16]
     """
-    B, T = coco_joint.shape[:2]
-    h36m_joint = torch.zeros((B, T, 17, 2), dtype=coco_joint.dtype, device=coco_joint.device)
+    B, T, J, C = coco_joint.shape[:2]
+    h36m_joint = torch.zeros((B, T, 17, C), dtype=coco_joint.dtype, device=coco_joint.device)
     
-    h36m_joint[..., 0, :] = coco_joint[..., 17, :2]
-    h36m_joint[..., 1, :] = coco_joint[..., 12, :2]
-    h36m_joint[..., 2, :] = coco_joint[..., 14, :2]
-    h36m_joint[..., 3, :] = coco_joint[..., 16, :2]
-    h36m_joint[..., 4, :] = coco_joint[..., 11, :2]
-    h36m_joint[..., 5, :] = coco_joint[..., 13, :2]
-    h36m_joint[..., 6, :] = coco_joint[..., 15, :2]
-    h36m_joint[..., 7, :] = (coco_joint[..., 17, :2] + coco_joint[..., 18, :2])/2
-    h36m_joint[..., 8, :] = coco_joint[..., 18, :2]
-    h36m_joint[..., 9, :] = coco_joint[..., 0, :2]
-    h36m_joint[..., 10, :] = (coco_joint[..., 1, :2] + coco_joint[..., 2, :2])/2
-    h36m_joint[..., 11, :] = coco_joint[..., 5, :2]
-    h36m_joint[..., 12, :] = coco_joint[..., 7, :2]
-    h36m_joint[..., 13, :] = coco_joint[..., 9, :2]
-    h36m_joint[..., 14, :] = coco_joint[..., 6, :2]
-    h36m_joint[..., 15, :] = coco_joint[..., 8, :2]
-    h36m_joint[..., 16, :] = coco_joint[..., 10, :2]
+    h36m_joint[..., 0, :] = coco_joint[..., 17, :]
+    h36m_joint[..., 1, :] = coco_joint[..., 12, :]
+    h36m_joint[..., 2, :] = coco_joint[..., 14, :]
+    h36m_joint[..., 3, :] = coco_joint[..., 16, :]
+    h36m_joint[..., 4, :] = coco_joint[..., 11, :]
+    h36m_joint[..., 5, :] = coco_joint[..., 13, :]
+    h36m_joint[..., 6, :] = coco_joint[..., 15, :]
+    h36m_joint[..., 7, :] = (coco_joint[..., 17, :] + coco_joint[..., 18, :])/2
+    h36m_joint[..., 8, :] = coco_joint[..., 18, :]
+    h36m_joint[..., 9, :] = coco_joint[..., 0, :]
+    h36m_joint[..., 10, :] = (coco_joint[..., 1, :] + coco_joint[..., 2, :])/2
+    h36m_joint[..., 11, :] = coco_joint[..., 5, :]
+    h36m_joint[..., 12, :] = coco_joint[..., 7, :]
+    h36m_joint[..., 13, :] = coco_joint[..., 9, :]
+    h36m_joint[..., 14, :] = coco_joint[..., 6, :]
+    h36m_joint[..., 15, :] = coco_joint[..., 8, :]
+    h36m_joint[..., 16, :] = coco_joint[..., 10, :]
 
     return h36m_joint
 
@@ -184,7 +184,7 @@ class Trainer:
                   meta['lift_pose3d_valid'].cuda(), meta['reg_pose3d_valid'].cuda(), meta['mesh_valid'].cuda(), meta['pose_valid'].cuda(), meta['shape_valid'].cuda(), meta['trans_valid'].cuda() 
             
             # Pre-processing
-            input_pose, gt_lift3dpose, val_lift3dpose = COCO2H36M(input_pose), COCO2H36M(gt_lift3dpose), COCO2H36M(val_lift3dpose)
+            input_pose, gt_lift3dpose, val_lift3dpose = COCO2H36M(input_pose[..., :2]), COCO2H36M(gt_lift3dpose), COCO2H36M(val_lift3dpose)
             
             lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
