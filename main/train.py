@@ -57,5 +57,4 @@ for epoch in range(cfg.TRAIN.begin_epoch, cfg.TRAIN.end_epoch + 1):
         'test_log': trainer.error_history
     }, epoch, is_best)
     
-    break
 print('Training Finished! All logs were saved in ', cfg.checkpoint_dir)

@@ -266,8 +266,8 @@ class Tester:
         with torch.no_grad():
             for i, (inputs, targets, meta) in enumerate(loader):
                 input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
-                gt_reg3dpose = targets['reg_pose3d'].cuda()
-                gt_mesh = targets['mesh'].cuda()
+                gt_reg3dpose = targets['reg_pose3d'].cuda() # mm
+                gt_mesh = targets['mesh'].cuda()            # m
                 input_pose = COCO2H36M(input_pose)
 
                 lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
@@ -296,7 +296,7 @@ class Tester:
             self.surface_error = surface_error / len(self.val_loader)
             self.joint_error = joint_error / len(self.val_loader)
             
-            print(f'{eval_prefix}MPVPE: {self.surface_error:.2f}, MPJPE: {self.joint_error:.2f}')
+            print(f'{eval_prefix}MPVPE: {self.surface_error:.4f}, MPJPE: {self.joint_error:.4f}')
 
             # Final Evaluation
             if (epoch == 0 or epoch == cfg.TRAIN.end_epoch):
