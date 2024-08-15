@@ -70,7 +70,6 @@ class Model(nn.Module):
         
         # Lifting feat
         lift3d_pos = self.model_backbone(pose_2d)     # [B, T, J, 3] 
-        lift3d_pos = lift3d_pos / 1000                # mm2m
 
         # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
@@ -81,7 +80,7 @@ class Model(nn.Module):
         sample_start, sample_end = T//2-self.stride//2, T//2+(self.stride//2+1)
 
         img_feat = self.proj_img_local(f_img[:, sample_start:sample_end])
-        pose_feat = self.proj_joint(lift3d_pos.flatten(-2)[:, sample_start:sample_end]) # [B, stride, 512]
+        pose_feat = self.proj_joint(lift3d_pos.flatten(-2)[:, sample_start:sample_end] / 1000) # [B, stride, 512]
         feat = self.fusing(img_feat, pose_feat)                                         # [B, stride, 256]
         feat = self.hierical_transformer(feat)
         feat = feat[:, self.stride//2-1:self.stride//2+2]

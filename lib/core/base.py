@@ -160,19 +160,19 @@ class Trainer:
         for i, (inputs, targets, meta) in enumerate(batch_generator):
             """
             Input
-            input_pose(H36M/m) : [B, T, 17, 2]
+            input_pose(H36M/mm) : [B, T, 17, 2]
             input_feat : [B, T, 2048]
 
             Target
-            gt_lift3dpose(H36M/m)   : [B, T, 17, 3]
+            gt_lift3dpose(H36M/mm)   : [B, T, 17, 3]
             gt_reg3dpose(H36M/mm)    : [B, T, 17, 3]
             gt_mesh(m), gt_pose, gt_shape, gt_trans : [B, T, 6890, 3], [B, T, 85]
 
             val_reg3dpose : [B, T, 19, 2]
 
             Output
-            lift3d_pos(H36M/m)          : [B, T, 17, 3]
-            pred_kp3d(H36M/m)           : [B, T, 17, 3]
+            lift3d_pos(H36M/mm)         : [B, T, 17, 3]
+            pred_kp3d(H36M/mm)          : [B, T, 17, 3]
             pred_mesh(m)                : [B, T, 6890, 3]
             mask_ids                    : [B, T, 1]
             """
@@ -188,8 +188,8 @@ class Trainer:
             
             lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
-            pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0]) 
-            pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0])               
+            pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0] * 1000)   # m2mm 
+            pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0] * 1000)               
 
             # Keypoint
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2)) + \
