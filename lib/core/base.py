@@ -273,7 +273,7 @@ class Tester:
                 lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=False, J_regressor=self.J_regressor)
                 pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000 # m2mm
 
-                pred_pose = torch.matmul(self.J_regressor[None,None, :, :], pred_mesh)  # mm
+                pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh)  # mm
 
                 j_error, s_error = self.val_dataset.compute_both_err(pred_mesh, gt_mesh, pred_pose, gt_reg3dpose)
                 
