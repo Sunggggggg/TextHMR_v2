@@ -17,7 +17,7 @@ class Model(nn.Module):
                  dropout=0.1,
                  drop_path_r=0.2,
                  atten_drop=0.0,
-                 pretrained='/mnt/SKY/MotionBERT/checkpoint/pretrain/custom/best_epoch.bin'
+                 pretrained='/mnt2/SKY/TextHMR_v2/pretrained_weight/best_epoch.bin'
                  ) :
         super().__init__()
         self.seqlen = seqlen

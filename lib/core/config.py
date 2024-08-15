@@ -19,7 +19,8 @@ cfg = edict()
 """ Directory """
 cfg.cur_dir = osp.dirname(os.path.abspath(__file__))
 cfg.root_dir = osp.join(cfg.cur_dir, '../../')
-cfg.data_dir = osp.join(cfg.root_dir, 'data')
+#cfg.data_dir = osp.join(cfg.root_dir, 'data')
+cfg.data_dir = '/mnt2/SCD/AngVMR/data/'
 cfg.smpl_dir = osp.join(cfg.root_dir, 'smplpytorch')
 cfg.mano_dir = osp.join(cfg.root_dir, 'manopth')
 KST = datetime.timezone(datetime.timedelta(hours=8))
@@ -51,7 +52,7 @@ cfg.DATASET.stride = 16
 cfg.DATASET.noise = 0
 
 ###############SMPL mean data#################
-cfg.DATASET.BASE_DATA_DIR = 'data/base_data'
+cfg.DATASET.BASE_DATA_DIR = cfg.data_dir
 ##############################################
 
 """ Model """
