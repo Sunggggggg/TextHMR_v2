@@ -188,8 +188,8 @@ class Trainer:
             
             lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
-            pred_kp3d_global = torch.matmul(self.J_regressor[None, :, :], pred_global[0]) 
-            pred_kp3d = torch.matmul(self.J_regressor[None, :, :], pred[0])               
+            pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0]) 
+            pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0])               
 
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids) + \
                 self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose)
@@ -266,7 +266,7 @@ class Tester:
                 lift3d_pos, pred_global, pred, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
                 pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000
 
-                pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh)
+                pred_pose = torch.matmul(self.J_regressor[None,None, :, :], pred_mesh)
 
                 j_error, s_error = self.val_dataset.compute_both_err(pred_mesh, gt_mesh, pred_pose, gt_reg3dpose)
                 
