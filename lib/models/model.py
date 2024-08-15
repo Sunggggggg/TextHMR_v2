@@ -74,7 +74,7 @@ class Model(nn.Module):
 
         # Init (Use SPIN backbone)
         img_feat = self.proj_img(f_img)
-        pose_feat = self.proj_joint(lift3d_pos.flatten(-2) / 1000)
+        pose_feat = self.proj_joint(lift3d_pos.flatten(-2))
         feat = torch.cat([img_feat, pose_feat], dim=-1)
         feat = self.fusing(feat)
 

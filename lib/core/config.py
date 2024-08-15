@@ -74,7 +74,7 @@ cfg.MODEL.posenet_path = './experiment/pretrained/pose_3dpw.pth.tar'
 
 """ Train Detail """
 cfg.TRAIN = edict()
-cfg.TRAIN.print_freq = 20
+cfg.TRAIN.print_freq = 1
 cfg.TRAIN.batch_size = 32
 cfg.TRAIN.shuffle = True
 cfg.TRAIN.begin_epoch = 1

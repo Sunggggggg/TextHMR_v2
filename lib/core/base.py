@@ -264,8 +264,9 @@ class Tester:
         with torch.no_grad():
             for i, (inputs, targets, meta) in enumerate(loader):
                 input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
-                gt_reg3dpose = targets['reg_pose3d'].cuda() # mm
-                gt_mesh = targets['mesh'].cuda()            # m
+                T = input_feat.shape[1]
+                gt_reg3dpose = targets['reg_pose3d'][:, T//2].cuda() # mm
+                gt_mesh = targets['mesh'][:, T//2].cuda()            # m
                 input_pose = COCO2H36M(input_pose)
 
                 lift3d_pos, pred, mask_ids = self.model(input_feat, input_pose, is_train=False, J_regressor=self.J_regressor)
