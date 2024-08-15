@@ -262,8 +262,8 @@ class PW3D(torch.utils.data.Dataset):
             meshes.append(mesh_cam / 1000)              # meter
             kp3d_poses.append(joint_cam_smpl / 1000)    # meter
             # Joint
-            lift_pose3d_poses.append(joint_cam_coco)
-            reg_pose3d_poses.append(joint_cam_h36m)
+            lift_pose3d_poses.append(joint_cam_coco.reshape(1, len(joint_cam_coco), 3))
+            reg_pose3d_poses.append(joint_cam_h36m.reshape(1, len(joint_cam_h36m), 3))
             # Meta
             mesh_valids.append(mesh_valid)
             reg_joint_valids.append(reg_joint_valid)
