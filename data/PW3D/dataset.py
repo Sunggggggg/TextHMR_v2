@@ -154,7 +154,7 @@ class PW3D(torch.utils.data.Dataset):
                 custompose = np.array(joints_coco_img_noise[seq_idx][img_idx][person_idx])
             else:
                 custompose = np.array(pose2d_outputs[str(aid)]['coco_joints'])
-                custompose = self.add_pelvis_and_neck(custompose, self.coco_joints_name)
+            custompose = self.add_pelvis_and_neck(custompose, self.coco_joints_name)
                 
             img_paths.append(img_path)
             vid_names.append(vid_name)
