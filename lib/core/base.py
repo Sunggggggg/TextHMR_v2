@@ -157,11 +157,10 @@ class Trainer:
         running_loss = 0.0
         batch_generator = tqdm(self.batch_generator)
         for i, (inputs, targets, meta) in enumerate(batch_generator):
-            input_pose, input_feat = inputs['pose2d'].cuda(), inputs['img_feature'].cuda()
-            gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'].cuda(), targets['reg_pose3d'].cuda()
-            input_pose = COCO2H36M(input_pose)
-            gt_lift3dpose = COCO2H36M(gt_lift3dpose)
-
+            input_pose, input_feat = inputs['pose2d'], inputs['img_feature'].cuda()
+            gt_lift3dpose, gt_reg3dpose = targets['lift_pose3d'], targets['reg_pose3d'].cuda()
+            input_pose, gt_lift3dpose = COCO2H36M(input_pose).cuda(), COCO2H36M(gt_lift3dpose).cuda()
+            
             gt_mesh, gt_pose, gt_shape, gt_trans = \
                   targets['mesh'].cuda(), targets['pose'].cuda(), targets['shape'].cuda(), targets['trans'].cuda()
             val_lift3dpose, val_reg3dpose, val_mesh, val_pose, val_shape, val_trans =\
