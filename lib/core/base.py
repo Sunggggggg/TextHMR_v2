@@ -17,31 +17,32 @@ from funcs_utils import get_optimizer, load_checkpoint, get_scheduler, count_par
 
 def COCO2H36M(coco_joint):
     """
+    B, T, J, 2
     coco : ['Nose':0, 'L_Eye':1, 'R_Eye':2, 'L_Ear':3, 'R_Ear':4, 'L_Shoulder':5, 'R_Shoulder':6, 'L_Elbow':7, 'R_Elbow':8, 'L_Wrist':9,
             'R_Wrist':10, 'L_Hip':11, 'R_Hip':12, 'L_Knee':13, 'R_Knee':14, 'L_Ankle':15, 'R_Ankle':16, 'Pelvis':17, 'Neck':18)]
     h36m : ['Pelvis':0, 'R_Hip':1, 'R_Knee':2, 'R_Ankle':3, 'L_Hip':4, 'L_Knee':5, 'L_Ankle':6, 'Torso':7, 'Neck':8, 'Nose':9, 'Head':10,
         'L_Shoulder':11, 'L_Elbow':12, 'L_Wrist':13, 'R_Shoulder':14, 'R_Elbow':15, 'R_Wrist':16]
     """
-    T, J = coco_joint.shape[:2]
+    B, T = coco_joint.shape[:2]
     h36m_joint = torch.zeros((T, 16, 2), device=coco_joint.device)
     
-    h36m_joint[..., 0] = coco_joint[..., 17]
-    h36m_joint[..., 1] = coco_joint[..., 12]
-    h36m_joint[..., 2] = coco_joint[..., 14]
-    h36m_joint[..., 3] = coco_joint[..., 16]
-    h36m_joint[..., 4] = coco_joint[..., 11]
-    h36m_joint[..., 5] = coco_joint[..., 13]
-    h36m_joint[..., 6] = coco_joint[..., 15]
-    h36m_joint[..., 7] = (coco_joint[..., 17] + coco_joint[..., 18])/2
-    h36m_joint[..., 8] = coco_joint[..., 18]
-    h36m_joint[..., 9] = coco_joint[..., 0]
-    h36m_joint[..., 10] = (coco_joint[..., 1] + coco_joint[..., 2])/2
-    h36m_joint[..., 11] = coco_joint[..., 5]
-    h36m_joint[..., 12] = coco_joint[..., 7]
-    h36m_joint[..., 13] = coco_joint[..., 9]
-    h36m_joint[..., 14] = coco_joint[..., 6]
-    h36m_joint[..., 15] = coco_joint[..., 8]
-    h36m_joint[..., 16] = coco_joint[..., 10]
+    h36m_joint[..., 0, :] = coco_joint[..., 17, :]
+    h36m_joint[..., 1, :] = coco_joint[..., 12, :]
+    h36m_joint[..., 2, :] = coco_joint[..., 14, :]
+    h36m_joint[..., 3, :] = coco_joint[..., 16, :]
+    h36m_joint[..., 4, :] = coco_joint[..., 11, :]
+    h36m_joint[..., 5, :] = coco_joint[..., 13, :]
+    h36m_joint[..., 6, :] = coco_joint[..., 15, :]
+    h36m_joint[..., 7, :] = (coco_joint[..., 17, :] + coco_joint[..., 18, :])/2
+    h36m_joint[..., 8, :] = coco_joint[..., 18, :]
+    h36m_joint[..., 9, :] = coco_joint[..., 0, :]
+    h36m_joint[..., 10, :] = (coco_joint[..., 1, :] + coco_joint[..., 2, :])/2
+    h36m_joint[..., 11, :] = coco_joint[..., 5, :]
+    h36m_joint[..., 12, :] = coco_joint[..., 7, :]
+    h36m_joint[..., 13, :] = coco_joint[..., 9, :]
+    h36m_joint[..., 14, :] = coco_joint[..., 6, :]
+    h36m_joint[..., 15, :] = coco_joint[..., 8, :]
+    h36m_joint[..., 16, :] = coco_joint[..., 10, :]
 
     return h36m_joint
 
