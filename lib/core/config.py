@@ -52,7 +52,7 @@ cfg.DATASET.stride = 16
 cfg.DATASET.noise = 0
 
 ###############SMPL mean data#################
-cfg.DATASET.BASE_DATA_DIR = '/mnt2/SCD/AngVMR/data/base_data'
+cfg.DATASET.BASE_DATA_DIR = '/mnt2/SCD/AngVMR/data/base_data/'
 ##############################################
 
 """ Model """
