@@ -191,11 +191,14 @@ class Trainer:
             pred_kp3d_global = torch.matmul(self.J_regressor[None,None, :, :], pred_global[0]) 
             pred_kp3d = torch.matmul(self.J_regressor[None,None, :, :], pred[0])               
 
+            # keypoint
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids) + \
                 self.joint_weight * self.loss['L2'](pred_kp3d, gt_reg3dpose, val_reg3dpose, short=True)
 
+            # Lifting
             loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose)
-            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids)+\
+            # SMPL
+            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))+\
                 self.loss['L1'](pred[0], gt_mesh, val_mesh, short=True)
             loss_pose = self.pose_weight * self.loss['L1'](pred_global[1], gt_pose, val_pose, mask_ids)+\
                 self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose, short=True)
