@@ -445,7 +445,7 @@ class MPII3D(torch.utils.data.Dataset):
             trans_valid = np.ones((1, len(trans_param), 1), dtype=np.float32)
             
             # SMPL
-            meshes.append(mesh_cam / 1000)
+            meshes.append((mesh_cam / 1000).reshape(1, len(mesh_cam), 3))
             kp3d_poses.append(joint_cam_smpl / 1000)    # meter
             # Joint
             lift_pose3d_poses.append(joint_cam_coco)

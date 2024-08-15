@@ -259,8 +259,8 @@ class PW3D(torch.utils.data.Dataset):
             trans_valid = np.ones((1, len(trans_param), 1), dtype=np.float32)
 
             # SMPL
-            meshes.append(mesh_cam / 1000)              # meter
-            kp3d_poses.append(joint_cam_smpl / 1000)    # meter
+            meshes.append((mesh_cam / 1000).reshape(1, len(mesh_cam), 3))                   # meter
+            kp3d_poses.append((joint_cam_smpl / 1000).reshape(1, len(joint_cam_smpl), 3))    # meter
             # Joint
             lift_pose3d_poses.append(joint_cam_coco.reshape(1, len(joint_cam_coco), 3))
             reg_pose3d_poses.append(joint_cam_h36m.reshape(1, len(joint_cam_h36m), 3))
