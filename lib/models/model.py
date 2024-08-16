@@ -36,8 +36,8 @@ class Model(nn.Module):
 
         # Fine-tuning stage
         self.proj_img = nn.Linear(2048, embed_dim)
-        self.proj_joint = nn.Linear(3, 32)
-        self.proj_pose = nn.Linear(num_joint*32, embed_dim)
+        self.proj_joint = nn.Linear(embed_dim, embed_dim//4)
+        self.proj_pose = nn.Linear(num_joint*embed_dim//4, embed_dim)
         self.fusing = nn.Sequential(
             nn.LayerNorm(embed_dim), nn.Linear(embed_dim, embed_dim), 
             nn.ReLU(), nn.Linear(embed_dim, embed_dim)
