@@ -190,7 +190,7 @@ class GMM(nn.Module):
             s['rotmat'] = s['rotmat'].reshape(batch_size, size, -1, 3, 3)
             s['scores'] = scores
        
-        return smpl_output_global[-1], mask_ids, mem, pred_global
+        return smpl_output_global, mask_ids, mem, pred_global
 
     def initialize_weights(self):
         torch.nn.init.normal_(self.trans.pos_embed, std=.02)
