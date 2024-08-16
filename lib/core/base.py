@@ -188,15 +188,18 @@ class Trainer:
             lift3d_pos, pred_global, mask_ids = self.model(input_feat, input_pose, is_train=True, J_regressor=self.J_regressor)
 
             # Global
-            pred_kp3d_global = torch.matmul(self.J_regressor[None, None, :, :], pred_global[0] * 1000)   # m2mm 
+            trans, pose, shape = pred_global[-1]['theta'][:3], pred_global[-1]['theta'][3:75], pred_global[-1]['theta'][75:]
+            mesh = pred_global[-1]['verts']
+            pred_kp3d_global = torch.matmul(self.J_regressor[None, None, :, :], mesh * 1000)   # m2mm 
             loss_kp3d = self.joint_weight * self.loss['L2'](pred_kp3d_global, gt_reg3dpose, val_reg3dpose, mask_ids.unsqueeze(2))
             #loss_lift3d = self.joint_weight * self.loss['L2'](lift3d_pos, gt_lift3dpose, val_lift3dpose[:, :, :17])
             
             # SMPL
-            loss_mesh = self.loss['L1'](pred_global[0], gt_mesh, val_mesh, mask_ids.unsqueeze(2))
-            loss_pose = self.pose_weight * self.loss['L1'](pred_global[1], gt_pose, val_pose, mask_ids)
-            loss_shape = self.shape_weight * self.loss['L1'](pred_global[2], gt_shape, val_shape, mask_ids)
-                
+            loss_mesh = self.loss['L1'](mesh, gt_mesh, val_mesh, mask_ids.unsqueeze(2))
+            loss_pose = self.pose_weight * self.loss['L1'](pose, gt_pose, val_pose, mask_ids)
+            loss_shape = self.shape_weight * self.loss['L1'](shape, gt_shape, val_shape, mask_ids)
+            loss_trans = self.trans_weight * self.loss['L1'](trans, gt_trans, val_trans, mask_ids)
+
             # loss_trans = self.trans_weight * self.loss['L1'](pred_global[3], gt_trans, val_trans, mask_ids)+\
             #     self.trans_weight * self.loss['L1'](pred[3], gt_trans, val_trans, short=True)
             
@@ -206,7 +209,7 @@ class Trainer:
             # self.pose_weight * self.loss['L1'](pred[1], gt_pose, val_pose, short=True)
             # self.shape_weight * self.loss['L1'](pred[2], gt_shape, val_shape, short=True)
 
-            loss = loss_kp3d + loss_mesh + loss_pose + loss_shape
+            loss = loss_kp3d + loss_mesh + loss_pose + loss_shape + loss_trans
 
             # update weights
             self.optimizer.zero_grad()
@@ -270,7 +273,8 @@ class Tester:
                 input_pose = COCO2H36M(input_pose)
 
                 lift3d_pos, pred, mask_ids = self.model(input_feat, input_pose, is_train=False, J_regressor=self.J_regressor)
-                pred_mesh, gt_mesh = pred[0] * 1000, gt_mesh * 1000 # m2mm
+                mesh = pred[-1]['verts']
+                pred_mesh, gt_mesh = mesh * 1000, gt_mesh * 1000 # m2mm
 
                 pred_pose = torch.matmul(self.J_regressor[None, :, :], pred_mesh)  # mm
 
