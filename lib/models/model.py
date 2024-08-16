@@ -75,4 +75,4 @@ class Model(nn.Module):
                 s['kp_3d'] = s['kp_3d'].reshape(B, -1, 3)
                 s['rotmat'] = s['rotmat'].reshape(B, -1, 3, 3)
 
-        return lift3d_pos, smpl_output_global, mask_ids
+        return None, smpl_output_global, mask_ids
